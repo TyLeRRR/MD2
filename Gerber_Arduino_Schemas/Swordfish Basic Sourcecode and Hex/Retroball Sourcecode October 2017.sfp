@@ -1,0 +1,31 @@
+[Project]
+Filename=Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas
+Root=0
+[Environment]
+CaretX=1
+CaretY=11
+Topline=1
+[Version]
+Enable=1
+Rollover=9
+Major=0
+Minor=0
+Release=0
+Build=4
+[Results]
+Visible=1
+Height=117
+View=1
+[Status]
+Message=Compilation errors
+Image=3
+[COMPILE_ERROR]
+ITEM_0="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","647","17","Incompatible parameter types"
+ITEM_1="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","651","18","Incompatible parameter types"
+ITEM_2="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","658","13","Incompatible types"
+ITEM_3="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","658","25","Illegal use of parentheses : Rand"
+ITEM_4="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","658","25","Operator not applicable to operand type"
+ITEM_5="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","662","13","Incompatible types"
+ITEM_6="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","662","25","Operator not applicable to operand type"
+ITEM_7="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","662","25","Illegal use of parentheses : Rand"
+ITEM_8="Y:\OneDrive\Projects\Retroball Kickstarter\Upload to Website\Swordfish Basic Sourcecode and Hex\Retroball Sourcecode October 2017.bas","1362","1","Identifier not declared : SetRndMax"
