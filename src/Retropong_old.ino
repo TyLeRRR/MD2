@@ -15,7 +15,7 @@
 #include <RGBmatrixPanel.h> // Hardware-specific library
 #include <SPI.h>
 
-#define CLK  8 // MUST be on PORTB!
+#define CLK  11 // MUST be on PORTB!
 #define LAT 10
 #define OE  9
 #define A   A0
@@ -26,36 +26,642 @@
 // buttery smooth animation.  Note that NOTHING WILL SHOW ON THE DISPLAY
 // until the first call to swapBuffers().  This is normal.
 RGBmatrixPanel matrix(A, B, C, D, CLK, LAT, OE, false);
-uint16_t black = matrix.Color444(0, 0, 0);
-//uint16_t white = matrix.Color444(15, 15, 15);
-uint16_t white = matrix.Color444(0, 0, 255);
-uint16_t yellow = matrix.Color444(15, 15, 0);
 
-int paddleWidth=6;
-int paddleHeight=1;
+uint16_t black_color = matrix.Color444(0, 0, 0);
+uint16_t blue_color = matrix.Color444(0, 0, 255);
+uint16_t red_color = matrix.Color444(255, 0, 0);
+uint16_t green_color = matrix.Color444(0, 180, 0);
+uint16_t white_color = matrix.Color444(255, 255, 255);
+uint16_t yellow_color = matrix.Color444(201, 171, 0);
 
-int ballDiameter=1;
-int paddleX = 0;
-int paddleY = 0;
-int oldPaddleX, oldPaddleY;
+int horiz_paddleWidth = 6;
+int horiz_paddleHeight = 1;
+
+int vertical_paddleWidth = 1;
+int vertical_paddleHeight = 6;
+
+int ballDiameter = 1;
+
+// paddle BOT
+int bot_paddleX = 0;
+int bot_paddleY = 0;
+int bot_oldPaddleX, bot_oldPaddleY;
+
+// paddle TOP
+int top_paddleX = 0;
+int top_paddleY = 31;
+int top_oldPaddleX, top_oldPaddleY;
+
+// paddle LEFT
+int left_paddleX = 31;
+int left_paddleY = 16;
+int left_oldPaddleX, left_oldPaddleY;
+
+// paddle RIGHT
+int right_paddleX = 0;
+int right_paddleY = 16;
+int right_oldPaddleX, right_oldPaddleY;
+
+// players score
+int bot_score = 9;
+int top_score = 9;
+int left_score = 9;
+int right_score = 9;
+
 int ballDirectionX = 1;
 int ballDirectionY = 1;
 
-int ballSpeed = 200; //lower numbers are faster
+int bot_paddle__poti = A4;
+int top_paddle_poti = A6;
+int left_paddle_poti = A5;
+int right_paddle_poti = A7;
+
+int ballSpeed = 150; //lower numbers are faster
+unsigned long howLongToShowScore = 500;// in miliseconds
+
+boolean isPlayerTopDead = false;
 
 int ballX, ballY, oldBallX, oldBallY;
 
 void clear() {
-    matrix.fillScreen(black);
+    matrix.fillScreen(black_color);
+}
+
+void clearScoreTop() {
+    matrix.fillRect(14, 24, 7, 7, black_color);
 }
 
 void setup() {
+    pinMode(bot_paddle__poti, INPUT);
+    pinMode(top_paddle_poti, INPUT);
+    pinMode(left_paddle_poti, INPUT);
+    pinMode(right_paddle_poti, INPUT);
     matrix.begin();
     clear();
 }
 
-void quicker(){
-    if (ballSpeed>20) ballSpeed--;
+void print_9_BOT() {
+    matrix.drawPixel(17, 1, red_color);
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 2, red_color);
+    matrix.drawPixel(13, 3, red_color);
+    matrix.drawPixel(13, 4, red_color);
+    matrix.drawPixel(13, 5, red_color);
+    matrix.drawPixel(13, 6, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(17, 6, red_color);
+    matrix.drawPixel(17, 5, red_color);
+    matrix.drawPixel(16, 4, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(14, 4, red_color);
+}
+
+void print_9_RIGHT() {
+    matrix.drawPixel(1, 14, blue_color);
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(2, 17, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+    matrix.drawPixel(4, 18, blue_color);
+    matrix.drawPixel(5, 18, blue_color);
+    matrix.drawPixel(6, 18, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(6, 14, blue_color);
+    matrix.drawPixel(5, 14, blue_color);
+    matrix.drawPixel(4, 15, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+}
+
+void print_9_LEFT() {
+    matrix.drawPixel(30, 17, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(29, 14, white_color);
+    matrix.drawPixel(28, 13, white_color);
+    matrix.drawPixel(27, 13, white_color);
+    matrix.drawPixel(26, 13, white_color);
+    matrix.drawPixel(25, 13, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(25, 17, white_color);
+    matrix.drawPixel(26, 17, white_color);
+    matrix.drawPixel(27, 16, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(27, 14, white_color);
+}
+
+void print_8_BOT() {
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(16, 4, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(14, 4, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(17, 2, red_color);
+    matrix.drawPixel(17, 3, red_color);
+    matrix.drawPixel(17, 5, red_color);
+    matrix.drawPixel(17, 6, red_color);
+    matrix.drawPixel(13, 2, red_color);
+    matrix.drawPixel(13, 3, red_color);
+    matrix.drawPixel(13, 5, red_color);
+    matrix.drawPixel(13, 6, red_color);
+}
+
+void print_8_RIGHT() {
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(4, 15, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(2, 14, blue_color);
+    matrix.drawPixel(3, 14, blue_color);
+    matrix.drawPixel(5, 14, blue_color);
+    matrix.drawPixel(6, 14, blue_color);
+    matrix.drawPixel(2, 18, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+    matrix.drawPixel(5, 18, blue_color);
+    matrix.drawPixel(6, 18, blue_color);
+
+}
+
+void print_8_LEFT() {
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(30, 17, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(27, 16, white_color);
+    matrix.drawPixel(27, 17, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(24, 17, white_color);
+    matrix.drawPixel(29, 14, white_color);
+    matrix.drawPixel(28, 14, white_color);
+    matrix.drawPixel(26, 14, white_color);
+    matrix.drawPixel(25, 14, white_color);
+    matrix.drawPixel(29, 18, white_color);
+    matrix.drawPixel(28, 18, white_color);
+    matrix.drawPixel(26, 18, white_color);
+    matrix.drawPixel(25, 18, white_color);
+}
+
+void print_7_BOT() {
+    matrix.drawPixel(17, 1, red_color);
+    matrix.drawPixel(16, 2, red_color);
+    matrix.drawPixel(15, 3, red_color);
+    matrix.drawPixel(14, 4, red_color);
+    matrix.drawPixel(13, 5, red_color);
+    matrix.drawPixel(13, 6, red_color);
+    matrix.drawPixel(13, 7, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(17, 7, red_color);
+}
+
+void print_7_RIGHT() {
+    matrix.drawPixel(1, 14, blue_color);
+    matrix.drawPixel(2, 15, blue_color);
+    matrix.drawPixel(3, 16, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+    matrix.drawPixel(5, 18, blue_color);
+    matrix.drawPixel(6, 18, blue_color);
+    matrix.drawPixel(7, 18, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(7, 14, blue_color);
+}
+
+void print_7_LEFT() {
+    matrix.drawPixel(30, 18, white_color);
+    matrix.drawPixel(29, 17, white_color);
+    matrix.drawPixel(28, 16, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(26, 14, white_color);
+    matrix.drawPixel(25, 14, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(24, 17, white_color);
+    matrix.drawPixel(24, 18, white_color);
+}
+
+void print_6_BOT() {
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(13, 2, red_color);
+    matrix.drawPixel(13, 3, red_color);
+    matrix.drawPixel(14, 4, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(16, 4, red_color);
+    matrix.drawPixel(17, 2, red_color);
+    matrix.drawPixel(17, 3, red_color);
+    matrix.drawPixel(17, 4, red_color);
+    matrix.drawPixel(17, 5, red_color);
+    matrix.drawPixel(16, 6, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(13, 7, red_color);
+}
+
+void print_6_RIGHT() {
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(2, 18, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(4, 15, blue_color);
+    matrix.drawPixel(2, 14, blue_color);
+    matrix.drawPixel(3, 14, blue_color);
+    matrix.drawPixel(4, 14, blue_color);
+    matrix.drawPixel(5, 14, blue_color);
+    matrix.drawPixel(6, 15, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(7, 18, blue_color);
+}
+
+void print_6_LEFT() {
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(29, 13, white_color);
+    matrix.drawPixel(28, 13, white_color);
+    matrix.drawPixel(27, 14, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(27, 16, white_color);
+    matrix.drawPixel(29, 17, white_color);
+    matrix.drawPixel(28, 17, white_color);
+    matrix.drawPixel(27, 17, white_color);
+    matrix.drawPixel(26, 17, white_color);
+    matrix.drawPixel(25, 16, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 13, white_color);
+}
+
+void print_5_BOT() {
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(17, 2, red_color);
+    matrix.drawPixel(13, 2, red_color);
+    matrix.drawPixel(13, 3, red_color);
+    matrix.drawPixel(13, 4, red_color);
+    matrix.drawPixel(14, 5, red_color);
+    matrix.drawPixel(15, 5, red_color);
+    matrix.drawPixel(16, 5, red_color);
+    matrix.drawPixel(17, 5, red_color);
+    matrix.drawPixel(17, 6, red_color);
+    matrix.drawPixel(17, 7, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(13, 7, red_color);
+}
+
+void print_5_RIGHT() {
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(2, 14, blue_color);
+    matrix.drawPixel(2, 18, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+    matrix.drawPixel(4, 18, blue_color);
+    matrix.drawPixel(5, 17, blue_color);
+    matrix.drawPixel(5, 16, blue_color);
+    matrix.drawPixel(5, 15, blue_color);
+    matrix.drawPixel(5, 14, blue_color);
+    matrix.drawPixel(6, 14, blue_color);
+    matrix.drawPixel(7, 14, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(7, 18, blue_color);
+}
+
+void print_5_LEFT() {
+    matrix.drawPixel(29, 17, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(29, 13, white_color);
+    matrix.drawPixel(28, 13, white_color);
+    matrix.drawPixel(27, 13, white_color);
+    matrix.drawPixel(26, 14, white_color);
+    matrix.drawPixel(26, 15, white_color);
+    matrix.drawPixel(26, 16, white_color);
+    matrix.drawPixel(26, 17, white_color);
+    matrix.drawPixel(25, 17, white_color);
+    matrix.drawPixel(24, 17, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 13, white_color);
+}
+
+void print_4_BOT() {
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(14, 2, red_color);
+    matrix.drawPixel(14, 3, red_color);
+    matrix.drawPixel(14, 4, red_color);
+    matrix.drawPixel(14, 5, red_color);
+    matrix.drawPixel(14, 6, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(15, 6, red_color);
+    matrix.drawPixel(16, 5, red_color);
+    matrix.drawPixel(17, 4, red_color);
+    matrix.drawPixel(17, 3, red_color);
+    matrix.drawPixel(16, 3, red_color);
+    matrix.drawPixel(15, 3, red_color);
+    matrix.drawPixel(13, 3, red_color);
+}
+
+void print_4_RIGHT() {
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(2, 17, blue_color);
+    matrix.drawPixel(3, 17, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+    matrix.drawPixel(5, 17, blue_color);
+    matrix.drawPixel(6, 17, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(6, 16, blue_color);
+    matrix.drawPixel(5, 15, blue_color);
+    matrix.drawPixel(4, 14, blue_color);
+    matrix.drawPixel(3, 14, blue_color);
+    matrix.drawPixel(3, 15, blue_color);
+    matrix.drawPixel(3, 16, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+}
+
+void print_4_LEFT() {
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(29, 14, white_color);
+    matrix.drawPixel(28, 14, white_color);
+    matrix.drawPixel(27, 14, white_color);
+    matrix.drawPixel(26, 14, white_color);
+    matrix.drawPixel(25, 14, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(25, 15, white_color);
+    matrix.drawPixel(26, 16, white_color);
+    matrix.drawPixel(27, 17, white_color);
+    matrix.drawPixel(28, 17, white_color);
+    matrix.drawPixel(28, 16, white_color);
+    matrix.drawPixel(28, 15, white_color);
+    matrix.drawPixel(28, 13, white_color);
+}
+
+void print_3_BOT() {
+    matrix.drawPixel(17, 2, red_color);
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(13, 2, red_color);
+    matrix.drawPixel(13, 3, red_color);
+    matrix.drawPixel(14, 4, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(14, 5, red_color);
+    matrix.drawPixel(13, 6, red_color);
+    matrix.drawPixel(13, 7, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(17, 7, red_color);
+}
+
+void print_3_RIGHT() {
+    matrix.drawPixel(2, 14, blue_color);
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(2, 18, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(5, 17, blue_color);
+    matrix.drawPixel(6, 18, blue_color);
+    matrix.drawPixel(7, 18, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(7, 14, blue_color);
+
+}
+
+void print_3_LEFT() {
+    matrix.drawPixel(29, 17, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(29, 13, white_color);
+    matrix.drawPixel(28, 13, white_color);
+    matrix.drawPixel(27, 14, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(26, 14, white_color);
+    matrix.drawPixel(25, 13, white_color);
+    matrix.drawPixel(24, 13, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(24, 17, white_color);
+}
+
+void print_2_BOT() {
+    matrix.drawPixel(17, 1, red_color);
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(13, 1, red_color);
+    matrix.drawPixel(17, 2, red_color);
+    matrix.drawPixel(17, 3, red_color);
+    matrix.drawPixel(16, 4, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(14, 4, red_color);
+    matrix.drawPixel(13, 5, red_color);
+    matrix.drawPixel(13, 6, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(17, 6, red_color);
+}
+
+void print_2_RIGHT(){
+    matrix.drawPixel(1, 14, blue_color);
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(1, 18, blue_color);
+    matrix.drawPixel(2, 14, blue_color);
+    matrix.drawPixel(3, 14, blue_color);
+    matrix.drawPixel(4, 15, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(4, 17, blue_color);
+    matrix.drawPixel(5, 18, blue_color);
+    matrix.drawPixel(6, 18, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(6, 14, blue_color);
+}
+
+void print_2_LEFT() {
+    matrix.drawPixel(30, 17, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(30, 13, white_color);
+    matrix.drawPixel(29, 17, white_color);
+    matrix.drawPixel(28, 17, white_color);
+    matrix.drawPixel(27, 16, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(27, 14, white_color);
+    matrix.drawPixel(26, 13, white_color);
+    matrix.drawPixel(25, 13, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(25, 17, white_color);
+}
+
+void print_1_BOT() {
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(15, 2, red_color);
+    matrix.drawPixel(15, 3, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(15, 5, red_color);
+    matrix.drawPixel(15, 6, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(16, 6, red_color);
+}
+
+void print_1_RIGHT() {
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(2, 16, blue_color);
+    matrix.drawPixel(3, 16, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(5, 16, blue_color);
+    matrix.drawPixel(6, 16, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(6, 15, blue_color);
+}
+
+void print_1_LEFT() {
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(29, 15, white_color);
+    matrix.drawPixel(28, 15, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(26, 15, white_color);
+    matrix.drawPixel(25, 15, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(25, 16, white_color);
+}
+
+void print_0_BOT() {
+    matrix.drawPixel(16, 1, red_color);
+    matrix.drawPixel(15, 1, red_color);
+    matrix.drawPixel(14, 1, red_color);
+    matrix.drawPixel(16, 7, red_color);
+    matrix.drawPixel(15, 7, red_color);
+    matrix.drawPixel(14, 7, red_color);
+    matrix.drawPixel(17, 2, red_color);
+    matrix.drawPixel(17, 3, red_color);
+    matrix.drawPixel(17, 4, red_color);
+    matrix.drawPixel(17, 5, red_color);
+    matrix.drawPixel(17, 6, red_color);
+    matrix.drawPixel(13, 2, red_color);
+    matrix.drawPixel(13, 3, red_color);
+    matrix.drawPixel(13, 4, red_color);
+    matrix.drawPixel(13, 5, red_color);
+    matrix.drawPixel(13, 6, red_color);
+    matrix.drawPixel(16, 3, red_color);
+    matrix.drawPixel(15, 4, red_color);
+    matrix.drawPixel(14, 5, red_color);
+}
+
+void print_0_RIGHT() {
+    matrix.drawPixel(1, 15, blue_color);
+    matrix.drawPixel(1, 16, blue_color);
+    matrix.drawPixel(1, 17, blue_color);
+    matrix.drawPixel(7, 15, blue_color);
+    matrix.drawPixel(7, 16, blue_color);
+    matrix.drawPixel(7, 17, blue_color);
+    matrix.drawPixel(2, 18, blue_color);
+    matrix.drawPixel(3, 18, blue_color);
+    matrix.drawPixel(4, 18, blue_color);
+    matrix.drawPixel(5, 18, blue_color);
+    matrix.drawPixel(6, 18, blue_color);
+    matrix.drawPixel(2, 14, blue_color);
+    matrix.drawPixel(3, 14, blue_color);
+    matrix.drawPixel(4, 14, blue_color);
+    matrix.drawPixel(5, 14, blue_color);
+    matrix.drawPixel(6, 14, blue_color);
+    matrix.drawPixel(3, 15, blue_color);
+    matrix.drawPixel(4, 16, blue_color);
+    matrix.drawPixel(5, 17, blue_color);
+}
+
+void print_0_LEFT() {
+    matrix.drawPixel(30, 14, white_color);
+    matrix.drawPixel(30, 15, white_color);
+    matrix.drawPixel(30, 16, white_color);
+    matrix.drawPixel(24, 14, white_color);
+    matrix.drawPixel(24, 15, white_color);
+    matrix.drawPixel(24, 16, white_color);
+    matrix.drawPixel(29, 17, white_color);
+    matrix.drawPixel(28, 17, white_color);
+    matrix.drawPixel(27, 17, white_color);
+    matrix.drawPixel(26, 17, white_color);
+    matrix.drawPixel(25, 17, white_color);
+    matrix.drawPixel(29, 13, white_color);
+    matrix.drawPixel(28, 13, white_color);
+    matrix.drawPixel(27, 13, white_color);
+    matrix.drawPixel(26, 13, white_color);
+    matrix.drawPixel(25, 13, white_color);
+    matrix.drawPixel(28, 16, white_color);
+    matrix.drawPixel(27, 15, white_color);
+    matrix.drawPixel(26, 14, white_color);
+}
+
+void printScoreTop(int print) {
+    unsigned long currentMillis = millis();
+    unsigned long endMillis = millis()+howLongToShowScore;
+
+    while (currentMillis <= endMillis) {
+        matrix.setCursor(14, 24);
+        matrix.setTextSize(1);
+        matrix.setTextColor(green_color);
+        matrix.print(print);
+        currentMillis++;
+    }
+        clearScoreTop();
+}
+
+
+void quicker() {
+    if (ballSpeed > 20) ballSpeed--;
 }
 
 boolean inPaddle(int x, int y, int rectX, int rectY, int rectWidth, int rectHeight) {
@@ -65,25 +671,50 @@ boolean inPaddle(int x, int y, int rectX, int rectY, int rectWidth, int rectHeig
         (y >= rectY && y <= (rectY + rectHeight))) {
         result = true;
     }
-
     return result;
 }
+
 void moveBall() {
     // if the ball goes offscreen, reverse the direction:
-    if (ballX > matrix.width()-1 || ballX < 0) {
+    if (ballX > matrix.width() - 1 || ballX < 0) {
         ballDirectionX = -ballDirectionX;
         quicker();
-    }
 
-    if (ballY > matrix.height()-1 || ballY < 0) {
+        if(isPlayerTopDead) {
+
+        } else {
+        printScoreTop(top_score--);
+            if(top_score == -1) isPlayerTopDead = true;
+        }
+    }
+    if (ballY > matrix.height() - 1 || ballY < 0) {
         ballDirectionY = -ballDirectionY;
         quicker();
+
+        if(isPlayerTopDead) {
+
+        } else {
+            printScoreTop(top_score--);
+            if(top_score == -1) isPlayerTopDead = true;
+        }
     }
 
     // check if the ball and the paddle occupy the same space on screen
-    if (inPaddle(ballX, ballY, paddleX, paddleY, paddleWidth, paddleHeight)) {
-        //    ballDirectionX = -ballDirectionX;
+    if (inPaddle(ballX, ballY, bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight)) {
+//        ballDirectionX = -ballDirectionX; if uncomment --> ball moves only diagonally all the time
         ballDirectionY = -ballDirectionY;
+        quicker();
+    }
+    if (inPaddle(ballX, ballY, top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight)) {
+        ballDirectionY = -ballDirectionY;
+        quicker();
+    }
+    if (inPaddle(ballX, ballY, left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight)) {
+        ballDirectionX = -ballDirectionX;
+        quicker();
+    }
+    if (inPaddle(ballX, ballY, right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight)) {
+        ballDirectionX = -ballDirectionX;
         quicker();
     }
 
@@ -93,284 +724,68 @@ void moveBall() {
 
     // erase the ball's previous position
     if (oldBallX != ballX || oldBallY != ballY) {
-        matrix.fillRect(oldBallX, oldBallY, ballDiameter, ballDiameter,black);
+        matrix.fillRect(oldBallX, oldBallY, ballDiameter, ballDiameter, black_color);
     }
 
     // draw the ball's current position
-    matrix.fillRect(ballX, ballY, ballDiameter, ballDiameter,white);
+    matrix.fillRect(ballX, ballY, ballDiameter, ballDiameter, yellow_color);
 
     oldBallX = ballX;
     oldBallY = ballY;
 }
 
 void loop() {
-    int myWidth = matrix.width();
-    int myHeight = matrix.height();
-    int a0= analogRead(A4);
-//    int a1= analogRead(A5);
+    int matrixWidth = matrix.width();
+    int matrixHeight = matrix.height();
 
-    paddleX = map(a0, 0, 1023, 0, myWidth)- paddleWidth/2 ;
-//    paddleY = map(a1, 0, 1023, 0, myHeight)-paddleHeight/2 ;
+    // update paddles positions
+    int curr_bot_paddle_position = analogRead(bot_paddle__poti);
+    int curr_top_paddle_position = analogRead(top_paddle_poti);
+    int curr_left_paddle_position = analogRead(left_paddle_poti);
+    int curr_right_paddle_position = analogRead(right_paddle_poti);
 
-    if (oldPaddleX != paddleX || oldPaddleY != paddleY) {
-        matrix.fillRect(oldPaddleX, oldPaddleY, paddleWidth, paddleHeight,black);
+    // lower the 1023 --> paddle moves faster
+    bot_paddleX = -1 * map(curr_bot_paddle_position, 0, 1023, 0, matrixWidth - 6) + 26;
+    top_paddleX = map(curr_top_paddle_position, 0, 1023, 0, matrixWidth - 6);
+    left_paddleY = -1 * map(curr_left_paddle_position, 0, 1023, 0, matrixHeight - 6) + 26;
+    right_paddleY = map(curr_right_paddle_position, 0, 1023, 0, matrixHeight - 6);
+
+    if (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY) {
+        matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
     }
-    matrix.fillRect(paddleX, paddleY, paddleWidth, paddleHeight,white);
+    if (!isPlayerTopDead && (top_oldPaddleX != top_paddleX || top_oldPaddleY != top_paddleY)) {
+        matrix.fillRect(top_oldPaddleX, top_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+    if (left_oldPaddleX != left_paddleX || left_oldPaddleY != left_paddleY) {
+        matrix.fillRect(left_oldPaddleX, left_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+    }
+    if (right_oldPaddleX != right_paddleX || right_oldPaddleY != right_paddleY) {
+        matrix.fillRect(right_oldPaddleX, right_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+    }
 
-    oldPaddleX = paddleX;
-    oldPaddleY = paddleY;
-    if (millis() % (ballSpeed/2) < 2) {
+    matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, red_color);
+
+    if (!isPlayerTopDead) {
+    matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, green_color);
+
+    }
+    matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, white_color);
+    matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, blue_color);
+
+    bot_oldPaddleX = bot_paddleX;
+    bot_oldPaddleY = bot_paddleY;
+
+    top_oldPaddleX = top_paddleX;
+    top_oldPaddleY = top_paddleY;
+
+    left_oldPaddleX = left_paddleX;
+    left_oldPaddleY = left_paddleY;
+
+    right_oldPaddleX = right_paddleX;
+    right_oldPaddleY = right_paddleY;
+
+    if (millis() % (ballSpeed / 2) < 2) {
         moveBall();
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//#include <HardwareSerial.h>
-//#include <HID.h>
-//
-//#include <Adafruit_GFX.h>   // Core graphics library
-//#include <RGBmatrixPanel.h>// Hardware-specific library
-//#include <SPI.h>
-//
-//// If your 32x32 matrix has the SINGLE HEADER input,
-//// use this pinout:
-//#define CLK 8  // MUST be on PORTB! (Use pin 11 on Mega)
-//#define OE  9
-//#define LAT 10
-////#define temp_A   DD2
-////#define temp_B   DD3
-////#define temp_C   DD4
-////#define temp_D   DD5
-//#define temp_A   A0
-//#define temp_B   A1
-//#define temp_C   A2
-//#define temp_D   A3
-//#define LEFT_BOT_PLAYER A4
-//#define WHITE_COLOR 0xFFFF // White
-//#define BLACK_COLOR 0x0000  // Black
-//
-//int board[32][32] = {
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-//        {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
-//};
-//
-//int playerPosition;
-//
-//RGBmatrixPanel matrix(temp_A, temp_B, temp_C, temp_D, CLK, LAT, OE, false);
-//
-// //const int buttonSelect = 12;
-////const int buttonPause = 11;
-////int myColor = 0;
-////int redColor = 0;
-////int greenColor = 0;
-////int blueColor = 0;
-////int pixelX = 0;
-////int lineY = 0;
-////int myDelay = 5;
-//
-//void setup() {
-//    pinMode(LEFT_BOT_PLAYER, INPUT);
-////    Serial.begin(9600);
-////    delay(2000);
-//    matrix.begin();
-//
-//}
-//
-//void loop() {
-////    matrix.drawPixel(0, 31, 0xFFFF);
-//    //this *2 defines the speed of the bar. The higher --> the faster
-//    playerPosition = (1023 - (analogRead(LEFT_BOT_PLAYER)*4)) / 50;
-//
-//    for (int pixelX = 0; pixelX < 32; pixelX++) {
-////        if (pixelX >= playerPosition && pixelX < playerPosition+6) {
-//        if (pixelX >= playerPosition) {
-////            matrix.drawPixel(31, pixelX, WHITE_COLOR);
-//            matrix.drawFastHLine(0, pixelX, 6, WHITE_COLOR);
-//        } else {
-////            matrix.drawPixel(31, pixelX, BLACK_COLOR);
-//            matrix.drawFastHLine(0, pixelX, 6, BLACK_COLOR);
-//        }
-//    }
-//}
-//
-//
-//
-//
-////        matrix.drawFastHLine( 0, 31, 6, BACKCOLOR);
-////        delay(50);  // increase to make the line move slower.  Decrease to move faster
-////        matrix.drawFastHLine( 0, 31, 6, PIXELCOLOR);
-//
-////        delay((1023 - analogRead(LEFT_BOT_PLAYER)) / 50);
-//
-////    playerPosition = analogRead(LEFT_BOT_PLAYER) * 6 / 1024;
-////
-////    for(int i = 0; i < 32; i++){
-////        if(i >= playerPosition && i < playerPosition + 6){
-////            shape[31][i] = 1;
-////        }else{
-////            shape[31][i] = 0;
-////        }
-////    }
