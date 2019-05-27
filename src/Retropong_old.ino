@@ -89,6 +89,13 @@ const String PLAYER_BOT = "bot";
 const String PLAYER_LEFT = "left";
 const String PLAYER_RIGHT = "right";
 
+unsigned long interval_for_Players = 2;
+unsigned long interval_for_Select = 1;
+
+boolean isGameStarted = false;
+boolean isShow_2 = false;
+boolean isShow_4 = true;
+
 int ballX = 10;
 int ballY = 19;
 int oldBallX = 0;
@@ -1077,7 +1084,7 @@ boolean inPaddle(int x, int y, int rectX, int rectY, int rectWidth, int rectHeig
 void moveBall() {
     // if the ball goes offscreen, reverse the direction:
 
-    if (ballX > matrix.width() -1) {// *************************goes offscreen for LEFT player
+    if (ballX > matrix.width() - 1) {// *************************goes offscreen for LEFT player
 //    if (ballX == 31) {// *************************goes offscreen for LEFT player
         ballDirectionX = -ballDirectionX;
         quicker();
@@ -1157,89 +1164,272 @@ void moveBall() {
     oldBallY = ballY;
 }
 
+void printStartScreen_2() {
+    matrix.fillRect(11, 15, 10, 3, yellow_color);
+    matrix.fillRect(11, 26, 10, 3, yellow_color);
+    matrix.fillRect(11, 20, 4, 6, yellow_color);
+    matrix.fillRect(17, 24, 4, 2, yellow_color);
+    matrix.fillRect(17, 18, 4, 2, yellow_color);
+    matrix.fillRect(15, 20, 6, 2, yellow_color);
+
+}
+
+void printStartScreen_4() {
+    matrix.fillRect(11, 15, 3, 14, yellow_color);
+    matrix.fillRect(18, 21, 3, 8, yellow_color);
+    matrix.fillRect(14, 21, 4, 2, yellow_color);
+}
+
+void printStartScreen_SELECT() {
+    //t
+    matrix.drawLine(3, 4, 3, 9, yellow_color);
+    matrix.drawLine(1, 9, 5, 9, yellow_color);
+
+    //c
+    matrix.drawPixel(7, 8, yellow_color);
+    matrix.drawPixel(7, 5, yellow_color);
+    matrix.drawLine(8, 9, 10, 9, yellow_color);
+    matrix.drawLine(8, 4, 10, 4, yellow_color);
+    matrix.drawLine(11, 5, 11, 8, yellow_color);
+
+    //e
+    matrix.drawLine(13, 4, 16, 4, yellow_color);
+    matrix.drawLine(13, 9, 16, 9, yellow_color);
+    matrix.drawLine(14, 7, 16, 7, yellow_color);
+    matrix.drawLine(16, 4, 16, 9, yellow_color);
+
+    //l
+    matrix.drawLine(18, 4, 20, 4, yellow_color);
+    matrix.drawLine(20, 4, 20, 9, yellow_color);
+
+    //e
+    matrix.drawLine(22, 4, 25, 4, yellow_color);
+    matrix.drawLine(22, 9, 25, 9, yellow_color);
+    matrix.drawLine(23, 7, 25, 7, yellow_color);
+    matrix.drawLine(25, 4, 25, 9, yellow_color);
+
+    //s
+    matrix.drawPixel(27, 8, yellow_color);
+    matrix.drawLine(30, 8, 27, 5, yellow_color);
+    matrix.drawLine(28, 9, 29, 9, yellow_color);
+    matrix.drawLine(28, 4, 29, 4, yellow_color);
+    matrix.drawPixel(30, 5, yellow_color);
+
+}
+
+void printStartScreen_PLAYERS() {
+    //s
+    matrix.drawLine(2, 4, 4, 4, yellow_color);
+    matrix.drawLine(2, 4, 2, 6, yellow_color);
+    matrix.drawLine(2, 6, 4, 6, yellow_color);
+    matrix.drawLine(4, 6, 4, 9, yellow_color);
+    matrix.drawLine(4, 9, 2, 9, yellow_color);
+    matrix.drawPixel(2, 8, yellow_color);
+
+    //r
+    matrix.drawLine(8, 4, 8, 9, yellow_color);
+    matrix.drawLine(8, 9, 6, 9, yellow_color);
+    matrix.drawLine(6, 9, 6, 7, yellow_color);
+    matrix.drawLine(6, 5, 6, 4, yellow_color);
+    matrix.drawPixel(7, 6, yellow_color);
+
+    //e
+    matrix.drawLine(12, 4, 12, 9, yellow_color);
+    matrix.drawLine(10, 4, 12, 4, yellow_color);
+    matrix.drawPixel(11, 6, yellow_color);
+    matrix.drawLine(10, 9, 12, 9, yellow_color);
+
+    //y
+    matrix.drawLine(14, 4, 14, 9, yellow_color);
+    matrix.drawLine(14, 4, 14, 9, yellow_color);
+    matrix.drawPixel(15, 7, yellow_color);
+    matrix.drawLine(16, 9, 16, 7, yellow_color);
+    matrix.drawLine(14, 4, 16, 4, yellow_color);
+
+    //a
+    matrix.drawLine(18, 4, 18, 9, yellow_color);
+    matrix.drawLine(20, 4, 20, 9, yellow_color);
+    matrix.drawPixel(19, 9, yellow_color);
+    matrix.drawPixel(19, 6, yellow_color);
+
+    //l
+    matrix.drawLine(24, 4, 24, 9, yellow_color);
+    matrix.drawLine(22, 4, 24, 4, yellow_color);
+
+    //p
+    matrix.drawLine(28, 4, 28, 9, yellow_color);
+    matrix.drawLine(26, 9, 26, 6, yellow_color);
+    matrix.drawPixel(27, 6, yellow_color);
+    matrix.drawPixel(27, 9, yellow_color);
+}
+
+void startScreen_printRedPointer(){
+    matrix.drawLine(18, 2, 14, 2, red_color);
+    matrix.drawLine(17, 1, 15, 1, red_color);
+    matrix.drawPixel(16, 0, red_color);
+}
+void startScreen_printGreenPointer(){
+    matrix.drawLine(18, 29, 14, 29, green_color);
+    matrix.drawLine(17, 30, 15, 30, green_color);
+    matrix.drawPixel(16, 31, green_color);
+}
+void startScreen_printBluePointer(){
+    matrix.drawLine(2, 14, 2, 18, blue_color);
+    matrix.drawLine(1, 15, 1, 17, blue_color);
+    matrix.drawPixel(0, 16, blue_color);
+}
+void startScreen_printWhitePointer(){
+    matrix.drawLine(29, 14, 29, 18, white_color);
+    matrix.drawLine(30, 15, 30, 17, white_color);
+    matrix.drawPixel(31, 16, white_color);
+}
+
+void startScreen_printRedPointer_clear(){
+    matrix.drawLine(18, 2, 14, 2, black_color);
+    matrix.drawLine(17, 1, 15, 1, black_color);
+    matrix.drawPixel(16, 0, black_color);
+}
+void startScreen_printGreenPointer_clear(){
+    matrix.drawLine(18, 29, 14, 29, black_color);
+    matrix.drawLine(17, 30, 15, 30, black_color);
+    matrix.drawPixel(16, 31, black_color);
+}
+void startScreen_printBluePointer_clear(){
+    matrix.drawLine(2, 14, 2, 18, black_color);
+    matrix.drawLine(1, 15, 1, 17, black_color);
+    matrix.drawPixel(0, 16, black_color);
+}
+void startScreen_printWhitePointer_clear(){
+    matrix.drawLine(29, 14, 29, 18, black_color);
+    matrix.drawLine(30, 15, 30, 17, black_color);
+    matrix.drawPixel(31, 16, black_color);
+}
+
+
+void startScreenLogic() {
+
+    // blinking animation for Select/Players
+    if ((millis() / 1000) == interval_for_Select) {
+        matrix.fillRect(0, 4, 31, 6, black_color);
+        printStartScreen_SELECT();
+        interval_for_Select += 2;
+    } else if ((millis() / 1000) == interval_for_Players) {
+        matrix.fillRect(0, 4, 31, 6, black_color);
+        printStartScreen_PLAYERS();
+        interval_for_Players += 2;
+    }
+
+    //changing 2 & 4 digits
+    if ((isShow_4 && !isShow_2) && ((1023- analogRead(bot_paddle__poti))/50)>15){
+        matrix.fillRect(11, 15, 10, 14, black_color); // clear the number rect
+
+        startScreen_printBluePointer_clear();
+        startScreen_printWhitePointer_clear();
+        startScreen_printRedPointer();
+        startScreen_printGreenPointer();
+        printStartScreen_2();
+        isShow_4 = false;
+        isShow_2 = true;
+    } else if((!isShow_4 && isShow_2) && ((1023- analogRead(bot_paddle__poti))/50)<15){
+        matrix.fillRect(11, 15, 10, 14, black_color);// clear the number rect
+
+        startScreen_printBluePointer();
+        startScreen_printWhitePointer();
+        printStartScreen_4();
+        isShow_4 = true;
+        isShow_2 = false;
+
+    }
+}
+
 void loop() {
 
-    if (isPlayerTopDead && isPlayerLeftDead && isPlayerRightDead) { // bot win
-        matrix.setRotation(0);
-        printWIN(red_color);
-    } else if (isPlayerBotDead && isPlayerLeftDead && isPlayerTopDead) { // right win
-        matrix.setRotation(3);
-        printWIN(blue_color);
-    } else if (isPlayerBotDead && isPlayerTopDead && isPlayerRightDead) {// left win
-        matrix.setRotation(1);
-        printWIN(white_color);
-    } else if (isPlayerBotDead && isPlayerLeftDead && isPlayerRightDead) {//top win
-        matrix.setRotation(2);
-        printWIN(green_color);
-    }
+    if (!isGameStarted) {
+        startScreenLogic();
 
-    int matrixWidth = matrix.width();
-    int matrixHeight = matrix.height();
+    } else if (isGameStarted) {
 
-    // update paddles positions
-    int curr_bot_paddle_position = analogRead(bot_paddle__poti);
-    int curr_top_paddle_position = analogRead(top_paddle_poti);
-    int curr_left_paddle_position = analogRead(left_paddle_poti);
-    int curr_right_paddle_position = analogRead(right_paddle_poti);
+        if (isPlayerTopDead && isPlayerLeftDead && isPlayerRightDead) { // bot win
+            matrix.setRotation(0);
+            printWIN(red_color);
+        } else if (isPlayerBotDead && isPlayerLeftDead && isPlayerTopDead) { // right win
+            matrix.setRotation(3);
+            printWIN(blue_color);
+        } else if (isPlayerBotDead && isPlayerTopDead && isPlayerRightDead) {// left win
+            matrix.setRotation(1);
+            printWIN(white_color);
+        } else if (isPlayerBotDead && isPlayerLeftDead && isPlayerRightDead) {//top win
+            matrix.setRotation(2);
+            printWIN(green_color);
+        }
 
-    // lower the 1023 --> paddle moves faster
-    bot_paddleX = -1 * map(curr_bot_paddle_position, 0, 1023, 0, matrixWidth - 6) + 26;
-    top_paddleX = map(curr_top_paddle_position, 0, 1023, 0, matrixWidth - 6);
-    left_paddleY = -1 * map(curr_left_paddle_position, 0, 1023, 0, matrixHeight - 6) + 26;
-    right_paddleY = map(curr_right_paddle_position, 0, 1023, 0, matrixHeight - 6);
+        int matrixWidth = matrix.width();
+        int matrixHeight = matrix.height();
 
-    //next 8 if statements responsible for paddle moving
-    if (!isPlayerBotDead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
-        matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
-    }
-    if (!isPlayerTopDead && (top_oldPaddleX != top_paddleX || top_oldPaddleY != top_paddleY)) {
-        matrix.fillRect(top_oldPaddleX, top_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
-    }
-    if (!isPlayerLeftDead && (left_oldPaddleX != left_paddleX || left_oldPaddleY != left_paddleY)) {
-        matrix.fillRect(left_oldPaddleX, left_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
-    }
-    if (!isPlayerRightDead && (right_oldPaddleX != right_paddleX || right_oldPaddleY != right_paddleY)) {
-        matrix.fillRect(right_oldPaddleX, right_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
-    }
+        // update paddles positions
+        int curr_bot_paddle_position = analogRead(bot_paddle__poti);
+        int curr_top_paddle_position = analogRead(top_paddle_poti);
+        int curr_left_paddle_position = analogRead(left_paddle_poti);
+        int curr_right_paddle_position = analogRead(right_paddle_poti);
 
-    if (!isPlayerBotDead) {
-        matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, red_color);
-        bot_oldPaddleX = bot_paddleX;
-        bot_oldPaddleY = bot_paddleY;
-    } else if (isPlayerBotDead) {
-        matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
-    }
-    if (!isPlayerTopDead) {
-        matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, green_color);
-        top_oldPaddleX = top_paddleX;
-        top_oldPaddleY = top_paddleY;
-    } else if (isPlayerTopDead) {
-        matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
-    }
-    if (!isPlayerLeftDead) {
-        matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, white_color);
-        left_oldPaddleX = left_paddleX;
-        left_oldPaddleY = left_paddleY;
-    } else if (isPlayerLeftDead) {
-        matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
-    }
-    if (!isPlayerRightDead) {
-        matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, blue_color);
-        right_oldPaddleX = right_paddleX;
-        right_oldPaddleY = right_paddleY;
-    } else if (isPlayerRightDead) {
-        matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
-    }
+        // lower the 1023 --> paddle moves faster
+        bot_paddleX = -1 * map(curr_bot_paddle_position, 0, 1023, 0, matrixWidth - 6) + 26;
+        top_paddleX = map(curr_top_paddle_position, 0, 1023, 0, matrixWidth - 6);
+        left_paddleY = -1 * map(curr_left_paddle_position, 0, 1023, 0, matrixHeight - 6) + 26;
+        right_paddleY = map(curr_right_paddle_position, 0, 1023, 0, matrixHeight - 6);
 
-    // small delay 1000ms before the ball starts
-    if ((millis() > 10000) && millis() % (ballSpeed / 2) < 2) {
-        moveBall();
+        //next 8 if statements responsible for paddle moving
+        if (!isPlayerBotDead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
+            matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+        }
+        if (!isPlayerTopDead && (top_oldPaddleX != top_paddleX || top_oldPaddleY != top_paddleY)) {
+            matrix.fillRect(top_oldPaddleX, top_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+        }
+        if (!isPlayerLeftDead && (left_oldPaddleX != left_paddleX || left_oldPaddleY != left_paddleY)) {
+            matrix.fillRect(left_oldPaddleX, left_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+        }
+        if (!isPlayerRightDead && (right_oldPaddleX != right_paddleX || right_oldPaddleY != right_paddleY)) {
+            matrix.fillRect(right_oldPaddleX, right_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight,
+                            black_color);
+        }
+
+        if (!isPlayerBotDead) {
+            matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, red_color);
+            bot_oldPaddleX = bot_paddleX;
+            bot_oldPaddleY = bot_paddleY;
+        } else if (isPlayerBotDead) {
+            matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+        }
+        if (!isPlayerTopDead) {
+            matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, green_color);
+            top_oldPaddleX = top_paddleX;
+            top_oldPaddleY = top_paddleY;
+        } else if (isPlayerTopDead) {
+            matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+        }
+        if (!isPlayerLeftDead) {
+            matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, white_color);
+            left_oldPaddleX = left_paddleX;
+            left_oldPaddleY = left_paddleY;
+        } else if (isPlayerLeftDead) {
+            matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+        }
+        if (!isPlayerRightDead) {
+            matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, blue_color);
+            right_oldPaddleX = right_paddleX;
+            right_oldPaddleY = right_paddleY;
+        } else if (isPlayerRightDead) {
+            matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+        }
+
+        // small delay 1000ms before the ball starts
+        if ((millis() > 10000) && millis() % (ballSpeed / 2) < 2) {
+            moveBall();
+        }
     }
 }
 
-void loadStartScreen() {
 
-}
 
 
 
