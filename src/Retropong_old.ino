@@ -14,6 +14,8 @@
 #include <Adafruit_GFX.h>   // Core graphics library
 #include <RGBmatrixPanel.h> // Hardware-specific library
 #include <SPI.h>
+#include <../lib/avdweb_AnalogReadFast-1.0.0/avdweb_AnalogReadFast.h>
+#include <../lib/SoftReset.h>
 
 #define CLK  11 // MUST be on PORTB!
 #define LAT 10
@@ -33,9 +35,9 @@ uint16_t red_color = matrix.Color444(255, 0, 0);
 uint16_t green_color = matrix.Color444(0, 180, 0);
 uint16_t white_color = matrix.Color444(255, 255, 255);
 uint16_t yellow_color = matrix.Color444(201, 171, 0);
-uint16_t violett_color = matrix.Color888(120,4,140);
+uint16_t violett_color = matrix.Color888(120, 4, 140);
 
-
+unsigned long prevMillis_reset = 0;
 int horiz_paddleWidth = 6;
 int horiz_paddleHeight = 1;
 
@@ -77,10 +79,15 @@ long ballY;
 long oldBallX = 0;
 long oldBallY = 0;
 
+//potis
 int bot_paddle__poti = A4;
-int top_paddle_poti = A6;
 int left_paddle_poti = A5;
+int top_paddle_poti = A6;
 int right_paddle_poti = A7;
+
+//button
+int button_select = 41;
+int buttonState = 0;
 
 int ballSpeed = 150; //lower numbers are faster
 unsigned long howLongToShowScore = 200;// in milliseconds
@@ -101,13 +108,17 @@ unsigned long interval_for_Select = 1;
 boolean isGameStarted = true; // must be false by default
 boolean isShow_2 = false;
 boolean isShow_4 = true;
-boolean isMode_2_Started = false;
-boolean isMode_4_Started= true;
+boolean isMode_2_Started = true;
+boolean isMode_4_Started = false;
 boolean isRoundStarted = false;
 boolean isBallSet = false;
 
+int matrixWidth = 32;
+int matrixHeight = 32;
+
 void clear() {
     matrix.fillScreen(black_color);
+
 }
 
 void clearScoreTop() {
@@ -126,7 +137,7 @@ void clearScoreRight() {
     matrix.fillRect(1, 14, 7, 5, black_color);
 }
 
-void getStartBallPositionFor_2_Bot(){
+void getStartBallPositionFor_2_Bot() {
     //random for bot player
     ballX = random(4, 28);
     ballY = random(2, 5);
@@ -141,7 +152,7 @@ void getStartBallPositionFor_2_Bot(){
     ballDirectionY = 1;
 }
 
-void getStartBallPositionFor_2_Top(){
+void getStartBallPositionFor_2_Top() {
 
     //random for bot player
     ballX = random(4, 28);
@@ -157,8 +168,8 @@ void getStartBallPositionFor_2_Top(){
     ballDirectionY = -1;
 }
 
-void getStartBallPositionFor_2(){
-    long rand = random(1,3);
+void getStartBallPositionFor_2() {
+    long rand = random(1, 3);
 
     if (rand == 2) {
         getStartBallPositionFor_2_Bot();
@@ -167,7 +178,7 @@ void getStartBallPositionFor_2(){
     }
 }
 
-void getStartBallPositionFor_4_Top(){
+void getStartBallPositionFor_4_Top() {
     //random for bot player
     ballX = random(4, 28);
     ballY = random(27, 30);
@@ -181,7 +192,8 @@ void getStartBallPositionFor_4_Top(){
     }
     ballDirectionY = -1;
 }
-void getStartBallPositionFor_4_Bot(){
+
+void getStartBallPositionFor_4_Bot() {
     //random for bot player
     ballX = random(4, 28);
     ballY = random(2, 5);
@@ -195,7 +207,8 @@ void getStartBallPositionFor_4_Bot(){
     }
     ballDirectionY = 1;
 }
-void getStartBallPositionFor_4_Left(){
+
+void getStartBallPositionFor_4_Left() {
     //random for left player
     ballX = random(27, 30);
     ballY = random(4, 28);
@@ -209,7 +222,8 @@ void getStartBallPositionFor_4_Left(){
     }
     ballDirectionX = -1;
 }
-void getStartBallPositionFor_4_Right(){
+
+void getStartBallPositionFor_4_Right() {
     //random for right player
     ballX = random(2, 5);
     ballY = random(4, 28);
@@ -224,8 +238,8 @@ void getStartBallPositionFor_4_Right(){
     ballDirectionX = 1;
 }
 
-void getStartBallPositionFor_4(){
-    long rand = random(1,5);
+void getStartBallPositionFor_4() {
+    long rand = random(1, 5);
 
     if (rand == 1) {
         getStartBallPositionFor_4_Bot();
@@ -243,8 +257,25 @@ void setup() {
     pinMode(top_paddle_poti, INPUT);
     pinMode(left_paddle_poti, INPUT);
     pinMode(right_paddle_poti, INPUT);
+
+//    isGameStarted = true; // must be false by default
+//    isShow_2 = false;
+//    isShow_4 = true;
+//    isMode_2_Started = true;
+//    isMode_4_Started = false;
+//    isRoundStarted = false;
+//    isBallSet = false;
+//
+//    isPlayerTopDead = false;
+//    isPlayerBotDead = false;
+//    isPlayerLeftDead = false;
+//    isPlayerRightDead = false;
+
+//    pinMode(button_select, INPUT);
+
     randomSeed(analogRead(random(A15)));// for random to be random
     matrix.begin();
+
     clear();
 }
 
@@ -901,7 +932,7 @@ void printWIN(uint16_t color) {
     matrix.drawLine(6, 14, 6, 10, color);
     matrix.drawLine(10, 14, 6, 10, color);
 
-    delay(50000); // game over
+    delay(5000); // game over
 }
 
 void printScore(int print, String player) {
@@ -1189,21 +1220,38 @@ void quicker() {
     if (ballSpeed > 20) ballSpeed--;
 }
 
-boolean inPaddle(int x, int y, int rectX, int rectY, int rectWidth, int rectHeight) {
-    boolean result = false;
+boolean inPaddle(int ball_x, int ball_y, int rectX, int rectY, int rectWidth, int rectHeight) {
+//    boolean result = false;
+//
+//    if ((x >= rectX && x <= (rectX + rectWidth)) &&
+//        (y >= rectY && y <= (rectY + rectHeight))) {
+//        result = true;
+//    }
+//    return result;
 
-    if ((x >= rectX && x <= (rectX + rectWidth)) &&
-        (y >= rectY && y <= (rectY + rectHeight))) {
-        result = true;
+    if ((ball_y == 30 || ball_y == 1) && ((ball_x >= rectX && ball_x <= (rectX + rectWidth)))) {
+        return true;
+    } else if ((ball_x == 30 || ball_x == 1) && ((ball_y >= rectY && ball_y <= (rectY + rectHeight)))) {
+        return true;
     }
-    return result;
+
+    return false;
+}
+
+boolean inPaddle_V2(int ball_x, int ball_y, int rectX, int rectY, int rectWidth, int rectHeight) {
+
+    if ((ball_y == 30 || ball_y == 1) && ((ball_x >= rectX && ball_x <= (rectX + rectWidth)))) {
+        return true;
+    }
+
+    return false;
 }
 
 void moveBall_Mode_4_Ball_1() {
     // if the ball goes offscreen, reverse the direction:
 
-    if (ballX > matrix.width() - 1) {// *************************goes offscreen for LEFT player
-//    if (ballX == 31) {// *************************goes offscreen for LEFT player
+//    if (ballX >= matrixWidth - 1) {// *************************goes offscreen for LEFT player
+    if (ballX == 31) {// *************************goes offscreen for LEFT player
         ballDirectionX = -ballDirectionX;
         quicker();
 
@@ -1224,8 +1272,8 @@ void moveBall_Mode_4_Ball_1() {
             if (right_score <= -1) isPlayerRightDead = true;
         }
     }
-    if (ballY > matrix.height() - 1) { // ************************goes offscreen for TOP player
-//    if (ballY ==31) { // ************************goes offscreen for TOP player
+//    if (ballY >= matrixHeight - 1) { // ************************goes offscreen for TOP player
+    if (ballY == 31) { // ************************goes offscreen for TOP player
         ballDirectionY = -ballDirectionY;
         quicker();
 
@@ -1285,16 +1333,16 @@ void moveBall_Mode_4_Ball_1() {
 void moveBall_Mode_2_Ball_1() {
     // if the ball goes offscreen, reverse the direction:
 
-    if (ballX == matrix.width() - 1) {// *************************goes offscreen for LEFT player
+    if (ballX == matrixWidth - 2) {// *************************goes offscreen for LEFT player - fine
         ballDirectionX = -ballDirectionX;
         quicker();
 
-    } else if (ballX == 1) { // ***********************************goes offscreen for RIGHT player
+    } else if (ballX == 1) { // ***********************************goes offscreen for RIGHT player - fine
         ballDirectionX = -ballDirectionX;
         quicker();
     }
-//    if (ballY == matrix.height() - 1) { // ************************goes offscreen for TOP player
-    if (ballY > matrix.height() - 2) { // ************************goes offscreen for TOP player
+    if (ballY == 31) { // ************************goes offscreen for TOP player
+//    if (ballY > matrix.height() - 2) { // ************************goes offscreen for TOP player
         ballDirectionY = -ballDirectionY;
         quicker();
 
@@ -1304,7 +1352,7 @@ void moveBall_Mode_2_Ball_1() {
             printScore(top_score--, PLAYER_TOP);
             if (top_score <= -1) isPlayerTopDead = true;
         }
-    } else if (ballY == 0) { // **************************************goes offscreen for BOT player
+    } else if (ballY == 0) { // **************************************goes offscreen for BOT player - here is fine
         ballDirectionY = -ballDirectionY;
         quicker();
 
@@ -1317,11 +1365,11 @@ void moveBall_Mode_2_Ball_1() {
     }
 
     // check if the ball and the paddle occupy the same space on screen
-    if (inPaddle(ballX, ballY, bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight)) {
+    if (inPaddle_V2(ballX, ballY, bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight)) {
         ballDirectionY = -ballDirectionY;
         quicker();
     }
-    if (inPaddle(ballX, ballY, top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight)) {
+    if (inPaddle_V2(ballX, ballY, top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight)) {
         ballDirectionY = -ballDirectionY;
         quicker();
     }
@@ -1441,55 +1489,75 @@ void printStartScreen_PLAYERS() {
     matrix.drawPixel(27, 9, yellow_color);
 }
 
-void startScreen_printRedPointer(){
+void startScreen_printRedPointer() {
     matrix.drawLine(18, 2, 14, 2, red_color);
     matrix.drawLine(17, 1, 15, 1, red_color);
     matrix.drawPixel(16, 0, red_color);
 }
-void startScreen_printGreenPointer(){
+
+void startScreen_printGreenPointer() {
     matrix.drawLine(18, 29, 14, 29, green_color);
     matrix.drawLine(17, 30, 15, 30, green_color);
     matrix.drawPixel(16, 31, green_color);
 }
-void startScreen_printBluePointer(){
+
+void startScreen_printBluePointer() {
     matrix.drawLine(2, 14, 2, 18, blue_color);
     matrix.drawLine(1, 15, 1, 17, blue_color);
     matrix.drawPixel(0, 16, blue_color);
 }
-void startScreen_printWhitePointer(){
+
+void startScreen_printWhitePointer() {
     matrix.drawLine(29, 14, 29, 18, white_color);
     matrix.drawLine(30, 15, 30, 17, white_color);
     matrix.drawPixel(31, 16, white_color);
 }
 
-void startScreen_printRedPointer_clear(){
+void startScreen_printRedPointer_clear() {
     matrix.drawLine(18, 2, 14, 2, black_color);
     matrix.drawLine(17, 1, 15, 1, black_color);
     matrix.drawPixel(16, 0, black_color);
 }
-void startScreen_printGreenPointer_clear(){
+
+void startScreen_printGreenPointer_clear() {
     matrix.drawLine(18, 29, 14, 29, black_color);
     matrix.drawLine(17, 30, 15, 30, black_color);
     matrix.drawPixel(16, 31, black_color);
 }
-void startScreen_printBluePointer_clear(){
+
+void startScreen_printBluePointer_clear() {
     matrix.drawLine(2, 14, 2, 18, black_color);
     matrix.drawLine(1, 15, 1, 17, black_color);
     matrix.drawPixel(0, 16, black_color);
 }
-void startScreen_printWhitePointer_clear(){
+
+void startScreen_printWhitePointer_clear() {
     matrix.drawLine(29, 14, 29, 18, black_color);
     matrix.drawLine(30, 15, 30, 17, black_color);
     matrix.drawPixel(31, 16, black_color);
 }
 
-void mode_2_Draw_Blank_Players(){
+void mode_2_Draw_Blank_Players() {
     matrix.drawLine(0, 0, 0, 31, blue_color);
     matrix.drawLine(31, 0, 31, 31, violett_color);
 }
 
+void loadStartScreen() {
+        clear();
+        soft_restart();
+}
+
 
 void startScreenLogic() {
+
+    buttonState = digitalRead(button_select);
+
+    //check if pressed. when pressed it is HIGH
+//    if (buttonState == HIGH) {
+//        clear();
+//        isGameStarted = true;
+//        isMode_2_Started = true;
+//    }
 
     // blinking animation for Select/Players
     if ((millis() / 1000) == interval_for_Select) {
@@ -1503,7 +1571,7 @@ void startScreenLogic() {
     }
 
     //changing 2 & 4 digits
-    if ((isShow_4 && !isShow_2) && ((1023- analogRead(bot_paddle__poti))/50)>15){
+    if ((isShow_4 && !isShow_2) && ((1023 - analogRead(bot_paddle__poti)) / 50) > 15) {
         matrix.fillRect(11, 15, 10, 14, black_color); // clear the number rect
 
         startScreen_printBluePointer_clear();
@@ -1513,7 +1581,7 @@ void startScreenLogic() {
         printStartScreen_2();
         isShow_4 = false;
         isShow_2 = true;
-    } else if((!isShow_4 && isShow_2) && ((1023- analogRead(bot_paddle__poti))/50)<15){
+    } else if ((!isShow_4 && isShow_2) && ((1023 - analogRead(bot_paddle__poti)) / 50) < 15) {
         matrix.fillRect(11, 15, 10, 14, black_color);// clear the number rect
 
         startScreen_printBluePointer();
@@ -1525,7 +1593,7 @@ void startScreenLogic() {
     }
 }
 
-void mode_2_Players_1_Ball(){
+void mode_2_Players_1_Ball() {
 
     if (!isBallSet) {
         //generate random ball position
@@ -1535,21 +1603,22 @@ void mode_2_Players_1_Ball(){
 
     mode_2_Draw_Blank_Players();
 
-    if(isPlayerTopDead) { // bot winn
+    if (isPlayerTopDead) { // bot winn
         matrix.setRotation(0);
         printWIN(red_color);
+        loadStartScreen();
     } else if (isPlayerBotDead) { // top win
         matrix.setRotation(2);
         printWIN(green_color);
+        loadStartScreen();
     }
-    int matrixWidth = matrix.width();
-    int matrixHeight = matrix.height();
 
-    int curr_bot_paddle_position = analogRead(bot_paddle__poti);
-    int curr_top_paddle_position = analogRead(top_paddle_poti);
+    //prewarm potis before reading the values
+    analogReadFast(bot_paddle__poti);
+    bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrixWidth - 6) + 26;
 
-    bot_paddleX = -1 * map(curr_bot_paddle_position, 0, 1023, 0, matrixWidth - 6) + 26;
-    top_paddleX = map(curr_top_paddle_position, 0, 1023, 0, matrixWidth - 6);
+    analogReadFast(top_paddle_poti);
+    top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrixWidth - 6);
 
     if (!isPlayerBotDead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
         matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
@@ -1575,7 +1644,7 @@ void mode_2_Players_1_Ball(){
     }
 
     //freeze the ball before round starts
-    if(!isRoundStarted && millis() > 5000){
+    if (!isRoundStarted && millis() > 5000) {
         matrix.drawPixel(ballX, ballY, black_color);
         isRoundStarted = true;
     }
@@ -1609,20 +1678,19 @@ void mode_4_Players_1_Ball() {
         printWIN(green_color);
     }
 
-    int matrixWidth = matrix.width();
-    int matrixHeight = matrix.height();
-
-    // update paddles positions
-    int curr_bot_paddle_position = analogRead(bot_paddle__poti);
-    int curr_top_paddle_position = analogRead(top_paddle_poti);
-    int curr_left_paddle_position = analogRead(left_paddle_poti);
-    int curr_right_paddle_position = analogRead(right_paddle_poti);
-
     // lower the 1023 --> paddle moves faster
-    bot_paddleX = -1 * map(curr_bot_paddle_position, 0, 1023, 0, matrixWidth - 6) + 26;
-    top_paddleX = map(curr_top_paddle_position, 0, 1023, 0, matrixWidth - 6);
-    left_paddleY = -1 * map(curr_left_paddle_position, 0, 1023, 0, matrixHeight - 6) + 26;
-    right_paddleY = map(curr_right_paddle_position, 0, 1023, 0, matrixHeight - 6);
+    analogReadFast(bot_paddle__poti);
+    bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrixWidth - 6) + 26;
+
+
+    analogReadFast(left_paddle_poti);
+    left_paddleY = -1 * map(analogReadFast(left_paddle_poti), 0, 1023, 0, matrixHeight - 6) + 26;
+
+    analogReadFast(top_paddle_poti);
+    top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrixWidth - 6);
+
+    analogReadFast(right_paddle_poti);
+    right_paddleY = map(analogReadFast(right_paddle_poti), 0, 1023, 0, matrixHeight - 6);
 
     //next 8 if statements responsible for paddle moving
     if (!isPlayerBotDead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
@@ -1668,8 +1736,8 @@ void mode_4_Players_1_Ball() {
         matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
     }
 
-    // freeze the ball before the round starts
-    if(!isRoundStarted && millis() > 5000){
+    //freeze the ball before the round starts
+    if (!isRoundStarted && millis() > 5000) {
         matrix.drawPixel(ballX, ballY, black_color);
         isRoundStarted = true;
     }
@@ -1682,50 +1750,13 @@ void mode_4_Players_1_Ball() {
 }
 
 void loop() {
-
     if (!isGameStarted) {
         startScreenLogic();
 
-    } else if (isGameStarted && isMode_2_Started){
+    } else if (isGameStarted && isMode_2_Started) {
         mode_2_Players_1_Ball();
 
     } else if (isGameStarted && isMode_4_Started) {
         mode_4_Players_1_Ball();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
