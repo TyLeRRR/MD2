@@ -90,7 +90,7 @@ int button_select = 41;
 int buttonState = 0;
 
 int ballSpeed = 150; //lower numbers are faster
-unsigned long howLongToShowScore = 200;// in milliseconds
+unsigned long howLongToShowScore = 200;// i8n milliseconds
 
 boolean isPlayerTopDead = false;
 boolean isPlayerBotDead = false;
@@ -105,10 +105,10 @@ const String PLAYER_RIGHT = "right";
 unsigned long interval_for_Players = 2;
 unsigned long interval_for_Select = 1;
 
-boolean isGameStarted = true; // must be false by default
+boolean isGameStarted = false; // must be false by default
 boolean isShow_2 = false;
 boolean isShow_4 = true;
-boolean isMode_2_Started = true;
+boolean isMode_2_Started = false;
 boolean isMode_4_Started = false;
 boolean isRoundStarted = false;
 boolean isBallSet = false;
@@ -273,7 +273,7 @@ void setup() {
 
 //    pinMode(button_select, INPUT);
 
-    randomSeed(analogRead(random(A15)));// for random to be random
+//    randomSeed(analogRead(random(A15)));// for random to be random
     matrix.begin();
 
     clear();
@@ -1614,11 +1614,11 @@ void mode_2_Players_1_Ball() {
     }
 
     //prewarm potis before reading the values
-    analogReadFast(bot_paddle__poti);
-    bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrixWidth - 6) + 26;
+//    analogRead(bot_paddle__poti);
+    bot_paddleX = -1 * map(analogRead(bot_paddle__poti), 0, 1023, 0, matrixWidth - 6) + 26;
 
-    analogReadFast(top_paddle_poti);
-    top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrixWidth - 6);
+//    analogRead(top_paddle_poti);
+    top_paddleX = map(analogRead(top_paddle_poti), 0, 1023, 0, matrixWidth - 6);
 
     if (!isPlayerBotDead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
         matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
@@ -1649,7 +1649,9 @@ void mode_2_Players_1_Ball() {
         isRoundStarted = true;
     }
 
-    if (isRoundStarted && millis() % (ballSpeed / 2) < 2) {
+    if (
+            isRoundStarted &&
+            millis() % (ballSpeed / 5) < 2) {
         moveBall_Mode_2_Ball_1();
     } else if (!isRoundStarted) {
         matrix.drawPixel(ballX, ballY, yellow_color);
