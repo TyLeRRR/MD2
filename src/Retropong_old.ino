@@ -51,10 +51,10 @@ int right_paddleY = 16;
 int right_oldPaddleX, right_oldPaddleY;
 
 // players score
-int bot_score = 9;
-int top_score = 9;
-int left_score = 9;
-int right_score = 9;
+int bot_score = 50;
+int top_score = 50;
+int left_score = 50;
+int right_score = 50;
 
 long ball_direction_X;
 long ball_direction_Y;
@@ -73,7 +73,7 @@ int right_paddle_poti = A7;
 //int button_select = 41;
 //int buttonState = 0;
 
-int ball_speed = 150; //lower numbers are faster
+int ball_speed = 15; //lower numbers are faster
 unsigned long how_long_show_score_each_player = 200;// in milliseconds
 
 boolean is_player_TOP_dead = false;
@@ -88,6 +88,8 @@ const String PLAYER_RIGHT = "right";
 
 unsigned long interval_for_showing_Players = 2;
 unsigned long interval_for_Select = 1;
+
+int tickRate = 1;
 
 /**
  * @TOM - important here!!
@@ -110,10 +112,10 @@ unsigned long interval_for_Select = 1;
  * But keep ALWAYS is_Show_4 = true and is_Show_2=false
  *
  */
-boolean is_game_started = false; // must be false by default
+boolean is_game_started = true; // must be false by default
 boolean is_show_2 = false;
 boolean is_show_4 = true;
-boolean is_mode_2_started = false;
+boolean is_mode_2_started = true;
 boolean is_mode_4_started = false;
 boolean is_round_started = false;
 boolean is_ball_set = false;
@@ -1211,7 +1213,7 @@ void print_score_for_player(int print, String player) {
 }
 
 void quicker() {
-    if (ball_speed > 20) ball_speed--;
+    if (ball_speed > 2) ball_speed--;
 }
 
 boolean inPaddle_4_mode(int ball_x, int ball_y, int rectX, int rectY, int rectWidth, int rectHeight) {
@@ -1309,11 +1311,11 @@ void move_ball_4_mode() {
 
     // erase the ball's previous position
     if (oldBall_X != ball_X || oldBall_Y != ball_Y) {
-        matrix.fillRect(oldBall_X, oldBall_Y, ballDiameter, ballDiameter, black_color);
+        matrix.drawPixel(oldBall_X, oldBall_Y, black_color);
     }
 
     // draw the ball's current position
-    matrix.fillRect(ball_X, ball_Y, ballDiameter, ballDiameter, yellow_color);
+    matrix.drawPixel(ball_X, ball_Y, yellow_color);
 
     oldBall_X = ball_X;
     oldBall_Y = ball_Y;
@@ -1370,11 +1372,14 @@ void move_ball_2_mode() {
 
     // erase the ball's previous position
     if (oldBall_X != ball_X || oldBall_Y != ball_Y) {
-        matrix.fillRect(oldBall_X, oldBall_Y, ballDiameter, ballDiameter, black_color);
+        //matrix.fillRect(oldBall_X, oldBall_Y, ballDiameter, ballDiameter, black_color);
+        matrix.drawPixel(oldBall_X, oldBall_Y, black_color);
+
     }
 
     // draw the ball's current position
-    matrix.fillRect(ball_X, ball_Y, ballDiameter, ballDiameter, yellow_color);
+    //matrix.fillRect(ball_X, ball_Y, ballDiameter, ballDiameter, yellow_color);
+    matrix.drawPixel(ball_X, ball_Y, yellow_color);
 
     oldBall_X = ball_X;
     oldBall_Y = ball_Y;
@@ -1603,12 +1608,8 @@ void mode_2_players() {
         load_start_screen();
     }
 
-    //prewarm potis before reading the values
-    analogRead(bot_paddle__poti);
-    bot_paddleX = -1 * map(analogRead(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
-
-    analogRead(top_paddle_poti);
-    top_paddleX = map(analogRead(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
+    bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
+    top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
 
     //next 4 if statements responsible for paddle moving
     if (!is_player_bot_dead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
@@ -1640,10 +1641,7 @@ void mode_2_players() {
         is_round_started = true;
     }
 
-    if (is_round_started
-        &&
-        millis() % (ball_speed / 5) < 2) {
-
+    if (is_round_started && tickRate % ball_speed == 0) {
         move_ball_2_mode();
     } else if (!is_round_started) {
         matrix.drawPixel(ball_X, ball_Y, yellow_color);
@@ -1672,19 +1670,13 @@ void mode_4_players() {
         print_WIN(green_color);
     }
 
+
     // lower the 1023 --> paddle moves faster
-    analogReadFast(bot_paddle__poti);
     bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
-
-
-    analogReadFast(left_paddle_poti);
     left_paddleY = -1 * map(analogReadFast(left_paddle_poti), 0, 1023, 0, matrix_height - 6) + 26;
-
-    analogReadFast(top_paddle_poti);
     top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
-
-    analogReadFast(right_paddle_poti);
     right_paddleY = map(analogReadFast(right_paddle_poti), 0, 1023, 0, matrix_height - 6);
+
 
     //next 8 if statements responsible for paddle moving
     if (!is_player_bot_dead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
@@ -1736,17 +1728,16 @@ void mode_4_players() {
         is_round_started = true;
     }
 
-    if (is_round_started
-        &&
-        millis() % (ball_speed / 2) < 2) {
-
+    if (is_round_started && tickRate % ball_speed == 0) {
         move_ball_4_mode();
     } else if (!is_round_started) {
         matrix.drawPixel(ball_X, ball_Y, yellow_color);
     }
 }
 
+
 void loop() {
+    tickRate++;
     if (!is_game_started) {
         start_screen_logic();
 
@@ -1755,5 +1746,9 @@ void loop() {
 
     } else if (is_game_started && is_mode_4_started) {
         mode_4_players();
+    }
+    
+    if (tickRate == 1000) {
+        tickRate = 1;
     }
 }
