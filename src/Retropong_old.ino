@@ -1,7 +1,6 @@
 #include <Adafruit_GFX.h>
 #include <RGBmatrixPanel.h>
 #include <SPI.h>
-#include <../lib/avdweb_AnalogReadFast-1.0.0/avdweb_AnalogReadFast.h>
 #include <../lib/SoftReset.h>
 
 #define CLK  11
@@ -21,14 +20,13 @@ uint16_t green_color = matrix.Color444(0, 180, 0);
 uint16_t white_color = matrix.Color444(255, 255, 255);
 uint16_t yellow_color = matrix.Color444(201, 171, 0);
 uint16_t violett_color = matrix.Color888(120, 4, 140);
+uint16_t box_ball_color = matrix.Color888(42, 196, 165);
 
 int horiz_paddleWidth = 6;
 int horiz_paddleHeight = 1;
 
 int vertical_paddleWidth = 1;
 int vertical_paddleHeight = 6;
-
-int ballDiameter = 1;
 
 // paddle BOT position
 int bot_paddleX = 0;
@@ -51,17 +49,35 @@ int right_paddleY = 16;
 int right_oldPaddleX, right_oldPaddleY;
 
 // players score
-int bot_score = 50;
-int top_score = 50;
-int left_score = 50;
-int right_score = 50;
+int bot_score = 9;
+int top_score = 9;
+int left_score = 9;
+int right_score = 9;
 
+//ball 1
 long ball_direction_X;
 long ball_direction_Y;
 long ball_X;
 long ball_Y;
 long oldBall_X = 0;
 long oldBall_Y = 0;
+
+//ball 2
+long ball_2_direction_X;
+long ball_2_direction_Y;
+long ball_2_X;
+long ball_2_Y;
+long oldBall_2_X = 0;
+long oldBall_2_Y = 0;
+
+
+//ball 3
+long ball_3_direction_X;
+long ball_3_direction_Y;
+long ball_3_X;
+long ball_3_Y;
+long oldBall_3_X = 0;
+long oldBall_3_Y = 0;
 
 //potis read
 int bot_paddle__poti = A4;
@@ -70,8 +86,11 @@ int top_paddle_poti = A6;
 int right_paddle_poti = A7;
 
 //button read
-//int button_select = 41;
-//int buttonState = 0;
+const int BUTTON_SELECT = 7;
+const int BUTTON_RESTART = 6;
+
+int button_was_low = false;
+int button_restart_state = 0;
 
 int ball_speed = 15; //lower numbers are faster
 unsigned long how_long_show_score_each_player = 200;// in milliseconds
@@ -89,7 +108,9 @@ const String PLAYER_RIGHT = "right";
 unsigned long interval_for_showing_Players = 2;
 unsigned long interval_for_Select = 1;
 
-int tickRate = 1;
+unsigned long tickRate = 1;
+
+unsigned long curr_time;
 
 /**
  * @TOM - important here!!
@@ -112,11 +133,16 @@ int tickRate = 1;
  * But keep ALWAYS is_Show_4 = true and is_Show_2=false
  *
  */
-boolean is_game_started = true; // must be false by default
+boolean is_game_started = false; // must be false by default
+boolean is_layer_2_started = false;
 boolean is_show_2 = false;
 boolean is_show_4 = true;
-boolean is_mode_2_started = true;
-boolean is_mode_4_started = false;
+boolean is_show_eazy = false;
+boolean is_show_hard = true;
+boolean is_started_mode_2_ball_1 = false;
+boolean is_started_mode_2_ball_3 = false;
+boolean is_started_mode_4_ball_1 = false;
+boolean is_started_mode_4_ball_3 = false;
 boolean is_round_started = false;
 boolean is_ball_set = false;
 
@@ -159,6 +185,36 @@ void get_start_ball_position_for_2_bot() {
     ball_direction_Y = 1;
 }
 
+void get_start_ball_3_position_for_2_bot() {
+    //random for bot player
+    ball_3_X = random(4, 28);
+    ball_3_Y = random(2, 5);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_3_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_3_direction_X = -1;
+    }
+    ball_3_direction_Y = 1;
+}
+
+void get_start_ball_2_position_for_2_bot() {
+    //random for bot player
+    ball_2_X = random(4, 28);
+    ball_2_Y = random(2, 5);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_2_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_2_direction_X = -1;
+    }
+    ball_2_direction_Y = 1;
+}
+
 void get_start_ball_position_for_2_top() {
 
     //random for top player
@@ -175,6 +231,38 @@ void get_start_ball_position_for_2_top() {
     ball_direction_Y = -1;
 }
 
+void get_start_ball_3_position_for_2_top() {
+
+    //random for top player
+    ball_3_X = random(4, 28);
+    ball_3_Y = random(27, 30);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_3_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_3_direction_X = -1;
+    }
+    ball_3_direction_Y = -1;
+}
+
+void get_start_ball_2_position_for_2_top() {
+
+    //random for top player
+    ball_2_X = random(4, 28);
+    ball_2_Y = random(27, 30);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_2_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_2_direction_X = -1;
+    }
+    ball_2_direction_Y = -1;
+}
+
 void get_start_ball_position_for_2_mode() {
     long rand = random(1, 3);
 
@@ -182,6 +270,26 @@ void get_start_ball_position_for_2_mode() {
         get_start_ball_position_for_2_bot();
     } else if (rand == 1) {
         get_start_ball_position_for_2_top();
+    }
+}
+
+void get_start_ball_3_position_for_2_mode() {
+    long rand = random(1, 3);
+
+    if (rand == 2) {
+        get_start_ball_3_position_for_2_bot();
+    } else if (rand == 1) {
+        get_start_ball_3_position_for_2_top();
+    }
+}
+
+void get_start_ball_2_position_for_2_mode() {
+    long rand = random(1, 3);
+
+    if (rand == 2) {
+        get_start_ball_2_position_for_2_bot();
+    } else if (rand == 1) {
+        get_start_ball_2_position_for_2_top();
     }
 }
 
@@ -200,6 +308,36 @@ void get_start_ball_position_for_4_top() {
     ball_direction_Y = -1;
 }
 
+void get_start_ball_2_position_for_4_top() {
+    //random for top player
+    ball_2_X = random(4, 28);
+    ball_2_Y = random(27, 30);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_2_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_2_direction_X = -1;
+    }
+    ball_2_direction_Y = -1;
+}
+
+void get_start_ball_3_position_for_4_top() {
+    //random for top player
+    ball_3_X = random(4, 28);
+    ball_3_Y = random(27, 30);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_3_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_3_direction_X = -1;
+    }
+    ball_3_direction_Y = -1;
+}
+
 void get_start_ball_position_for_4_bot() {
     //random for bot player
     ball_X = random(4, 28);
@@ -213,6 +351,36 @@ void get_start_ball_position_for_4_bot() {
         ball_direction_X = -1;
     }
     ball_direction_Y = 1;
+}
+
+void get_start_ball_2_position_for_4_bot() {
+    //random for bot player
+    ball_2_X = random(4, 28);
+    ball_2_Y = random(2, 5);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_2_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_2_direction_X = -1;
+    }
+    ball_2_direction_Y = 1;
+}
+
+void get_start_ball_3_position_for_4_bot() {
+    //random for bot player
+    ball_3_X = random(4, 28);
+    ball_3_Y = random(2, 5);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_3_direction_X = 1;
+    } else if (randDirection == 2) {
+        ball_3_direction_X = -1;
+    }
+    ball_3_direction_Y = 1;
 }
 
 void get_start_ball_position_for_4_left() {
@@ -230,6 +398,36 @@ void get_start_ball_position_for_4_left() {
     ball_direction_X = -1;
 }
 
+void get_start_ball_2_position_for_4_left() {
+    //random for left player
+    ball_2_X = random(27, 30);
+    ball_2_Y = random(4, 28);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_2_direction_Y = -1;
+    } else if (randDirection == 2) {
+        ball_2_direction_Y = 1;
+    }
+    ball_2_direction_X = -1;
+}
+
+void get_start_ball_3_position_for_4_left() {
+    //random for left player
+    ball_3_X = random(27, 30);
+    ball_3_Y = random(4, 28);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_3_direction_Y = -1;
+    } else if (randDirection == 2) {
+        ball_3_direction_Y = 1;
+    }
+    ball_3_direction_X = -1;
+}
+
 void get_start_ball_position_for_4_right() {
     //random for right player
     ball_X = random(2, 5);
@@ -243,6 +441,36 @@ void get_start_ball_position_for_4_right() {
         ball_direction_Y = 1;
     }
     ball_direction_X = 1;
+}
+
+void get_start_ball_2_position_for_4_right() {
+    //random for right player
+    ball_2_X = random(2, 5);
+    ball_2_Y = random(4, 28);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_2_direction_Y = -1;
+    } else if (randDirection == 2) {
+        ball_2_direction_Y = 1;
+    }
+    ball_2_direction_X = 1;
+}
+
+void get_start_ball_3_position_for_4_right() {
+    //random for right player
+    ball_3_X = random(2, 5);
+    ball_3_Y = random(4, 28);
+
+    long randDirection = random(1, 3);
+
+    if (randDirection == 1) {
+        ball_3_direction_Y = -1;
+    } else if (randDirection == 2) {
+        ball_3_direction_Y = 1;
+    }
+    ball_3_direction_X = 1;
 }
 
 void get_start_ball_position_for_4_mode() {
@@ -259,13 +487,104 @@ void get_start_ball_position_for_4_mode() {
     }
 }
 
+void get_start_ball_2_position_for_4_mode() {
+    long rand = random(1, 5);
+
+    if (rand == 1) {
+        get_start_ball_2_position_for_4_bot();
+    } else if (rand == 2) {
+        get_start_ball_2_position_for_4_top();
+    } else if (rand == 3) {
+        get_start_ball_2_position_for_4_left();
+    } else if (rand == 4) {
+        get_start_ball_2_position_for_4_right();
+    }
+}
+
+void get_start_ball_3_position_for_4_mode() {
+    long rand = random(1, 5);
+
+    if (rand == 1) {
+        get_start_ball_3_position_for_4_bot();
+    } else if (rand == 2) {
+        get_start_ball_3_position_for_4_top();
+    } else if (rand == 3) {
+        get_start_ball_3_position_for_4_left();
+    } else if (rand == 4) {
+        get_start_ball_3_position_for_4_right();
+    }
+}
+
+void draw_ball_box(uint16_t color) {
+    matrix.drawPixel(ball_X + 1, ball_Y + 1, color);
+    matrix.drawPixel(ball_X - 1, ball_Y - 1, color);
+    matrix.drawPixel(ball_X + 1, ball_Y - 1, color);
+    matrix.drawPixel(ball_X - 1, ball_Y + 1, color);
+    matrix.drawPixel(ball_X, ball_Y + 1, color);
+    matrix.drawPixel(ball_X, ball_Y - 1, color);
+    matrix.drawPixel(ball_X + 1, ball_Y, color);
+    matrix.drawPixel(ball_X - 1, ball_Y, color);
+}
+
+void draw_ball_box_mode_3(uint16_t color) {
+    matrix.drawPixel(15 + 1, 16 + 1, color);
+    matrix.drawPixel(15 - 1, 16 - 1, color);
+    matrix.drawPixel(15 + 1, 16 - 1, color);
+    matrix.drawPixel(15 - 1, 16 + 1, color);
+    matrix.drawPixel(15, 16 + 1, color);
+    matrix.drawPixel(15, 16 - 1, color);
+    matrix.drawPixel(15 + 1, 16, color);
+    matrix.drawPixel(15 - 1, 16, color);
+}
+
+void clear_ball_box_mode_3_tick_1() {
+    matrix.drawPixel(15 + 1, 16 + 1, black_color);
+    matrix.drawPixel(15 - 1, 16 - 1, black_color);
+}
+
+void clear_ball_box_mode_3_tick_2() {
+    matrix.drawPixel(15 + 1, 16 - 1, black_color);
+    matrix.drawPixel(15 - 1, 16 + 1, black_color);
+}
+
+void clear_ball_box_mode_3_tick_3() {
+    matrix.drawPixel(15, 16 + 1, black_color);
+    matrix.drawPixel(15, 16 - 1, black_color);
+}
+
+void clear_ball_box_mode_3_tick_4() {
+    matrix.drawPixel(15 + 1, 16, black_color);
+    matrix.drawPixel(15 - 1, 16, black_color);
+}
+
+void clear_ball_box_1_tick() {
+    matrix.drawPixel(ball_X + 1, ball_Y + 1, black_color);
+    matrix.drawPixel(ball_X - 1, ball_Y - 1, black_color);
+}
+
+void clear_ball_box_2_tick() {
+    matrix.drawPixel(ball_X + 1, ball_Y - 1, black_color);
+    matrix.drawPixel(ball_X - 1, ball_Y + 1, black_color);
+}
+
+void clear_ball_box_3_tick() {
+    matrix.drawPixel(ball_X, ball_Y + 1, black_color);
+    matrix.drawPixel(ball_X, ball_Y - 1, black_color);
+}
+
+void clear_ball_box_4_tick() {
+    matrix.drawPixel(ball_X + 1, ball_Y, black_color);
+    matrix.drawPixel(ball_X - 1, ball_Y, black_color);
+}
+
 void setup() {
     pinMode(bot_paddle__poti, INPUT);
     pinMode(top_paddle_poti, INPUT);
     pinMode(left_paddle_poti, INPUT);
     pinMode(right_paddle_poti, INPUT);
 
-//    pinMode(button_select, INPUT); // button setup
+    pinMode(BUTTON_SELECT, INPUT_PULLUP);
+    pinMode(BUTTON_RESTART, INPUT_PULLUP);
 
     randomSeed(analogRead(random(A15)));// for random to be really random. Otherwise some shit result is returned
     matrix.begin();
@@ -888,6 +1207,133 @@ void print_0_score_TOP() {
     matrix.print(0);
 }
 
+void print_arrows_WIN(uint16_t color) {
+    matrix.drawLine(23, 0, 31, 8, color);
+    matrix.drawLine(22, 0, 31, 9, color);
+    matrix.drawLine(21, 0, 31, 10, color);
+    matrix.drawLine(20, 0, 31, 11, color);
+    matrix.drawLine(7, 0, 0, 7, color);
+    matrix.drawLine(8, 0, 0, 8, color);
+    matrix.drawLine(9, 0, 0, 9, color);
+    matrix.drawLine(10, 0, 0, 10, color);
+
+    matrix.drawLine(15, 0, 21, 6, color);
+    matrix.drawLine(15, 1, 20, 6, color);
+    matrix.drawLine(15, 2, 19, 6, color);
+    matrix.drawLine(15, 3, 18, 6, color);
+
+    matrix.drawLine(15, 0, 9, 6, color);
+    matrix.drawLine(15, 1, 10, 6, color);
+    matrix.drawLine(15, 2, 11, 6, color);
+    matrix.drawLine(15, 3, 12, 6, color);
+
+    matrix.drawLine(27, 12, 31, 16, color);
+    matrix.drawLine(27, 13, 31, 17, color);
+    matrix.drawLine(27, 14, 31, 18, color);
+    matrix.drawLine(27, 15, 31, 19, color);
+
+    matrix.drawLine(3, 12, 0, 15, color);
+    matrix.drawLine(3, 13, 0, 16, color);
+    matrix.drawLine(3, 14, 0, 17, color);
+    matrix.drawLine(3, 15, 0, 18, color);
+
+    matrix.drawLine(27, 20, 31, 24, color);
+    matrix.drawLine(27, 21, 31, 25, color);
+    matrix.drawLine(27, 22, 31, 26, color);
+    matrix.drawLine(27, 23, 31, 27, color);
+
+    matrix.drawLine(3, 20, 0, 23, color);
+    matrix.drawLine(3, 21, 0, 24, color);
+    matrix.drawLine(3, 22, 0, 25, color);
+    matrix.drawLine(3, 23, 0, 26, color);
+
+    matrix.drawLine(24, 25, 30, 31, color);
+    matrix.drawLine(23, 25, 29, 31, color);
+    matrix.drawLine(22, 25, 28, 31, color);
+    matrix.drawLine(21, 25, 27, 31, color);
+
+    matrix.drawLine(6, 25, 0, 31, color);
+    matrix.drawLine(7, 25, 1, 31, color);
+    matrix.drawLine(8, 25, 2, 31, color);
+    matrix.drawLine(9, 25, 3, 31, color);
+
+    matrix.drawLine(16, 25, 22, 31, color);
+    matrix.drawLine(15, 25, 21, 31, color);
+    matrix.drawLine(15, 26, 20, 31, color);
+    matrix.drawLine(15, 27, 19, 31, color);
+
+    matrix.drawLine(14, 25, 8, 31, color);
+    matrix.drawLine(15, 25, 9, 31, color);
+    matrix.drawLine(15, 26, 10, 31, color);
+    matrix.drawLine(15, 27, 11, 31, color);
+
+    matrix.drawPixel(15, 25, color);
+
+}
+
+void print_arrows_WIN_clear(uint16_t color) {
+    matrix.drawLine(23, 0, 31, 8, color);
+    matrix.drawLine(22, 0, 31, 9, color);
+    matrix.drawLine(21, 0, 31, 10, color);
+    matrix.drawLine(20, 0, 31, 11, color);
+    matrix.drawLine(7, 0, 0, 7, color);
+    matrix.drawLine(8, 0, 0, 8, color);
+    matrix.drawLine(9, 0, 0, 9, color);
+    matrix.drawLine(10, 0, 0, 10, color);
+
+    matrix.drawLine(15, 0, 21, 6, color);
+    matrix.drawLine(15, 1, 20, 6, color);
+    matrix.drawLine(15, 2, 19, 6, color);
+    matrix.drawLine(15, 3, 18, 6, color);
+
+    matrix.drawLine(15, 0, 9, 6, color);
+    matrix.drawLine(15, 1, 10, 6, color);
+    matrix.drawLine(15, 2, 11, 6, color);
+    matrix.drawLine(15, 3, 12, 6, color);
+
+    matrix.drawLine(27, 12, 31, 16, color);
+    matrix.drawLine(27, 13, 31, 17, color);
+    matrix.drawLine(27, 14, 31, 18, color);
+    matrix.drawLine(27, 15, 31, 19, color);
+
+    matrix.drawLine(3, 12, 0, 15, color);
+    matrix.drawLine(3, 13, 0, 16, color);
+    matrix.drawLine(3, 14, 0, 17, color);
+    matrix.drawLine(3, 15, 0, 18, color);
+
+    matrix.drawLine(27, 20, 31, 24, color);
+    matrix.drawLine(27, 21, 31, 25, color);
+    matrix.drawLine(27, 22, 31, 26, color);
+    matrix.drawLine(27, 23, 31, 27, color);
+
+    matrix.drawLine(3, 20, 0, 23, color);
+    matrix.drawLine(3, 21, 0, 24, color);
+    matrix.drawLine(3, 22, 0, 25, color);
+    matrix.drawLine(3, 23, 0, 26, color);
+
+    matrix.drawLine(24, 25, 30, 31, color);
+    matrix.drawLine(23, 25, 29, 31, color);
+    matrix.drawLine(22, 25, 28, 31, color);
+    matrix.drawLine(21, 25, 27, 31, color);
+
+    matrix.drawLine(6, 25, 0, 31, color);
+    matrix.drawLine(7, 25, 1, 31, color);
+    matrix.drawLine(8, 25, 2, 31, color);
+    matrix.drawLine(9, 25, 3, 31, color);
+
+    matrix.drawLine(16, 25, 22, 31, color);
+    matrix.drawLine(15, 25, 21, 31, color);
+    matrix.drawLine(15, 26, 20, 31, color);
+    matrix.drawLine(15, 27, 19, 31, color);
+
+    matrix.drawLine(14, 25, 8, 31, color);
+    matrix.drawLine(15, 25, 9, 31, color);
+    matrix.drawLine(15, 26, 10, 31, color);
+    matrix.drawLine(15, 27, 11, 31, color);
+
+    matrix.drawPixel(15, 25, color);
+}
+
 void print_WIN(uint16_t color) {
 
     clear_screen();
@@ -927,13 +1373,22 @@ void print_WIN(uint16_t color) {
     matrix.drawLine(6, 14, 6, 10, color);
     matrix.drawLine(10, 14, 6, 10, color);
 
-    delay(5000); // game over
+    //how long to show endscreen
+    int currentTime = millis();
+    int endTime = currentTime + 70;
+
+    for (int i = currentTime; i < endTime; i++) {
+        print_arrows_WIN(color);
+        print_arrows_WIN_clear(black_color);
+    }
 }
 
 void print_score_for_player(int print, String player) {
 
-    unsigned long currentMillis = millis();
-    unsigned long endMillis = millis() + how_long_show_score_each_player;
+//    unsigned long currentMillis = millis();
+    unsigned long currentMillis = tickRate;
+//    unsigned long endMillis = millis() + how_long_show_score_each_player;
+    unsigned long endMillis = tickRate + how_long_show_score_each_player;
 
     if (player == PLAYER_TOP) {
         switch (print) {
@@ -1213,7 +1668,7 @@ void print_score_for_player(int print, String player) {
 }
 
 void quicker() {
-    if (ball_speed > 2) ball_speed--;
+    if (ball_speed > 4) ball_speed--;
 }
 
 boolean inPaddle_4_mode(int ball_x, int ball_y, int rectX, int rectY, int rectWidth, int rectHeight) {
@@ -1241,7 +1696,6 @@ void move_ball_4_mode() {
 
     if (ball_X == 31) {// *************************goes offscreen for LEFT player
         ball_direction_X = -ball_direction_X;
-        quicker();
 
         if (is_player_left_dead) {
             // do nothing because the paddle dissappers. nothing left to be done
@@ -1251,7 +1705,6 @@ void move_ball_4_mode() {
         }
     } else if (ball_X == 0) { // ***********************************goes offscreen for RIGHT player
         ball_direction_X = -ball_direction_X;
-        quicker();
 
         if (is_player_right_dead) {
             // do nothing because the paddle dissappers. nothing left to be done
@@ -1262,7 +1715,6 @@ void move_ball_4_mode() {
     }
     if (ball_Y == 31) { // ************************goes offscreen for TOP player
         ball_direction_Y = -ball_direction_Y;
-        quicker();
 
         if (is_player_TOP_dead) {
             // do nothing because the paddle dissappers. nothing left to be done
@@ -1272,7 +1724,6 @@ void move_ball_4_mode() {
         }
     } else if (ball_Y == 0) { // **************************************goes offscreen for BOT player
         ball_direction_Y = -ball_direction_Y;
-        quicker();
 
         if (is_player_bot_dead) {
             // do nothing because the paddle dissappers. nothing left to be done
@@ -1321,20 +1772,242 @@ void move_ball_4_mode() {
     oldBall_Y = ball_Y;
 }
 
+void move_3_ball_4_mode() {
+    // if the ball goes offscreen, reverse the direction:
+    //ball 1
+    if (ball_X == 31) {// *************************goes offscreen for LEFT player
+        ball_direction_X = -ball_direction_X;
+
+        if (is_player_left_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(left_score--, PLAYER_LEFT);
+            if (left_score <= -1) is_player_left_dead = true;
+        }
+    } else if (ball_X == 0) { // ***********************************goes offscreen for RIGHT player
+        ball_direction_X = -ball_direction_X;
+
+        if (is_player_right_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(right_score--, PLAYER_RIGHT);
+            if (right_score <= -1) is_player_right_dead = true;
+        }
+    }
+    //ball 2
+    if (ball_2_X == 31) {// *************************goes offscreen for LEFT player
+        ball_2_direction_X = -ball_2_direction_X;
+
+        if (is_player_left_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(left_score--, PLAYER_LEFT);
+            if (left_score <= -1) is_player_left_dead = true;
+        }
+    } else if (ball_2_X == 0) { // ***********************************goes offscreen for RIGHT player
+        ball_2_direction_X = -ball_2_direction_X;
+
+        if (is_player_right_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(right_score--, PLAYER_RIGHT);
+            if (right_score <= -1) is_player_right_dead = true;
+        }
+    }
+    //ball 3
+    if (ball_3_X == 31) {// *************************goes offscreen for LEFT player
+        ball_3_direction_X = -ball_3_direction_X;
+
+        if (is_player_left_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(left_score--, PLAYER_LEFT);
+            if (left_score <= -1) is_player_left_dead = true;
+        }
+    } else if (ball_3_X == 0) { // ***********************************goes offscreen for RIGHT player
+        ball_3_direction_X = -ball_3_direction_X;
+
+        if (is_player_right_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(right_score--, PLAYER_RIGHT);
+            if (right_score <= -1) is_player_right_dead = true;
+        }
+    }
+
+    //ball 1
+    if (ball_Y == 31) { // ************************goes offscreen for TOP player
+        ball_direction_Y = -ball_direction_Y;
+
+        if (is_player_TOP_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(top_score--, PLAYER_TOP);
+            if (top_score <= -1) is_player_TOP_dead = true;
+        }
+    } else if (ball_Y == 0) { // **************************************goes offscreen for BOT player
+        ball_direction_Y = -ball_direction_Y;
+
+        if (is_player_bot_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(bot_score--, PLAYER_BOT);
+            if (bot_score <= -1) is_player_bot_dead = true;
+        }
+    }
+    //ball 2
+    if (ball_2_Y == 31) { // ************************goes offscreen for TOP player
+        ball_2_direction_Y = -ball_2_direction_Y;
+
+        if (is_player_TOP_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(top_score--, PLAYER_TOP);
+            if (top_score <= -1) is_player_TOP_dead = true;
+        }
+    } else if (ball_2_Y == 0) { // **************************************goes offscreen for BOT player
+        ball_2_direction_Y = -ball_2_direction_Y;
+
+        if (is_player_bot_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(bot_score--, PLAYER_BOT);
+            if (bot_score <= -1) is_player_bot_dead = true;
+        }
+    }
+    //ball 3
+    if (ball_3_Y == 31) { // ************************goes offscreen for TOP player
+        ball_3_direction_Y = -ball_3_direction_Y;
+
+        if (is_player_TOP_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(top_score--, PLAYER_TOP);
+            if (top_score <= -1) is_player_TOP_dead = true;
+        }
+    } else if (ball_3_Y == 0) { // **************************************goes offscreen for BOT player
+        ball_3_direction_Y = -ball_3_direction_Y;
+
+        if (is_player_bot_dead) {
+            // do nothing because the paddle dissappers. nothing left to be done
+        } else {
+            print_score_for_player(bot_score--, PLAYER_BOT);
+            if (bot_score <= -1) is_player_bot_dead = true;
+        }
+    }
+
+    // check if the ball and the paddle occupy the same space on screen
+    //ball 1
+    if (inPaddle_4_mode(ball_X, ball_Y, bot_paddleX, bot_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for BOT player
+        ball_direction_Y = -ball_direction_Y;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_X, ball_Y, top_paddleX, top_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for TOP player
+        ball_direction_Y = -ball_direction_Y;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_X, ball_Y, left_paddleX, left_paddleY, vertical_paddleWidth,
+                        vertical_paddleHeight)) { // check for LEFT player
+        ball_direction_X = -ball_direction_X;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_X, ball_Y, right_paddleX, right_paddleY, vertical_paddleWidth,
+                        vertical_paddleHeight)) { // check for RIGHT player
+        ball_direction_X = -ball_direction_X;
+        quicker();
+    }
+    //ball 2
+    if (inPaddle_4_mode(ball_2_X, ball_2_Y, bot_paddleX, bot_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for BOT player
+        ball_2_direction_Y = -ball_2_direction_Y;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_2_X, ball_2_Y, top_paddleX, top_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for TOP player
+        ball_2_direction_Y = -ball_2_direction_Y;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_2_X, ball_2_Y, left_paddleX, left_paddleY, vertical_paddleWidth,
+                        vertical_paddleHeight)) { // check for LEFT player
+        ball_2_direction_X = -ball_2_direction_X;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_2_X, ball_2_Y, right_paddleX, right_paddleY, vertical_paddleWidth,
+                        vertical_paddleHeight)) { // check for RIGHT player
+        ball_2_direction_X = -ball_2_direction_X;
+        quicker();
+    }
+    //ball 3
+    if (inPaddle_4_mode(ball_3_X, ball_3_Y, bot_paddleX, bot_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for BOT player
+        ball_3_direction_Y = -ball_3_direction_Y;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_3_X, ball_3_Y, top_paddleX, top_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for TOP player
+        ball_3_direction_Y = -ball_3_direction_Y;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_3_X, ball_3_Y, left_paddleX, left_paddleY, vertical_paddleWidth,
+                        vertical_paddleHeight)) { // check for LEFT player
+        ball_3_direction_X = -ball_3_direction_X;
+        quicker();
+    }
+    if (inPaddle_4_mode(ball_3_X, ball_3_Y, right_paddleX, right_paddleY, vertical_paddleWidth,
+                        vertical_paddleHeight)) { // check for RIGHT player
+        ball_3_direction_X = -ball_3_direction_X;
+        quicker();
+    }
+
+    // update the ball's position
+    ball_X += ball_direction_X;
+    ball_Y += ball_direction_Y;
+
+    ball_2_X += ball_2_direction_X;
+    ball_2_Y += ball_2_direction_Y;
+
+    ball_3_X += ball_3_direction_X;
+    ball_3_Y += ball_3_direction_Y;
+
+    // erase the ball's previous position
+    if (oldBall_X != ball_X || oldBall_Y != ball_Y) {
+        matrix.drawPixel(oldBall_X, oldBall_Y, black_color);
+    }
+    if (oldBall_2_X != ball_2_X || oldBall_2_Y != ball_2_Y) {
+        matrix.drawPixel(oldBall_2_X, oldBall_2_Y, black_color);
+    }
+    if (oldBall_3_X != ball_3_X || oldBall_3_Y != ball_3_Y) {
+        matrix.drawPixel(oldBall_3_X, oldBall_3_Y, black_color);
+    }
+
+    // draw the ball's current position
+    matrix.drawPixel(ball_X, ball_Y, yellow_color);
+    matrix.drawPixel(ball_2_X, ball_2_Y, yellow_color);
+    matrix.drawPixel(ball_3_X, ball_3_Y, yellow_color);
+
+    oldBall_X = ball_X;
+    oldBall_Y = ball_Y;
+
+    oldBall_2_X = ball_2_X;
+    oldBall_2_Y = ball_2_Y;
+
+    oldBall_3_X = ball_3_X;
+    oldBall_3_Y = ball_3_Y;
+}
+
 void move_ball_2_mode() {
     // if the ball goes offscreen, reverse the direction:
 
     if (ball_X == matrix_width - 2) {// *************************goes offscreen for LEFT WALL
         ball_direction_X = -ball_direction_X;
-        quicker();
 
     } else if (ball_X == 1) { // ***********************************goes offscreen for RIGHT WALL
         ball_direction_X = -ball_direction_X;
-        quicker();
     }
     if (ball_Y == 31) { // ************************goes offscreen for TOP player
         ball_direction_Y = -ball_direction_Y;
-        quicker();
 
         if (is_player_TOP_dead) {
             // player is dead
@@ -1344,7 +2017,6 @@ void move_ball_2_mode() {
         }
     } else if (ball_Y == 0) { // **************************************goes offscreen for BOT player
         ball_direction_Y = -ball_direction_Y;
-        quicker();
 
         if (is_player_bot_dead) {
             // player is dead
@@ -1383,6 +2055,177 @@ void move_ball_2_mode() {
 
     oldBall_X = ball_X;
     oldBall_Y = ball_Y;
+}
+
+void move_3_ball_2_mode() {
+    // if the ball goes offscreen, reverse the direction:
+    //ball 1
+    if (ball_X == matrix_width - 2) {// *************************goes offscreen for LEFT WALL
+        ball_direction_X = -ball_direction_X;
+
+    } else if (ball_X == 1) { // ***********************************goes offscreen for RIGHT WALL
+        ball_direction_X = -ball_direction_X;
+    }
+    //ball 2
+    if (ball_2_X == matrix_width - 2) {// *************************goes offscreen for LEFT WALL
+        ball_2_direction_X = -ball_2_direction_X;
+
+    } else if (ball_2_X == 1) { // ***********************************goes offscreen for RIGHT WALL
+        ball_2_direction_X = -ball_2_direction_X;
+    }
+    //ball 3
+    if (ball_3_X == matrix_width - 2) {// *************************goes offscreen for LEFT WALL
+        ball_3_direction_X = -ball_3_direction_X;
+
+    } else if (ball_3_X == 1) { // ***********************************goes offscreen for RIGHT WALL
+        ball_3_direction_X = -ball_3_direction_X;
+    }
+
+    //ball 1
+    if (ball_Y == 31) { // ************************goes offscreen for TOP player
+        ball_direction_Y = -ball_direction_Y;
+
+        if (is_player_TOP_dead) {
+            // player is dead
+        } else {
+            print_score_for_player(top_score--, PLAYER_TOP);
+            if (top_score <= -1) is_player_TOP_dead = true;
+        }
+    } else if (ball_Y == 0) { // **************************************goes offscreen for BOT player
+        ball_direction_Y = -ball_direction_Y;
+
+        if (is_player_bot_dead) {
+            // player is dead
+        } else {
+            print_score_for_player(bot_score--, PLAYER_BOT);
+            if (bot_score <= -1) is_player_bot_dead = true;
+        }
+    }
+
+    //ball 2
+    if (ball_2_Y == 31) { // ************************goes offscreen for TOP player
+        ball_2_direction_Y = -ball_2_direction_Y;
+
+        if (is_player_TOP_dead) {
+            // player is dead
+        } else {
+            print_score_for_player(top_score--, PLAYER_TOP);
+            if (top_score <= -1) is_player_TOP_dead = true;
+        }
+    } else if (ball_2_Y == 0) { // **************************************goes offscreen for BOT player
+        ball_2_direction_Y = -ball_2_direction_Y;
+
+        if (is_player_bot_dead) {
+            // player is dead
+        } else {
+            print_score_for_player(bot_score--, PLAYER_BOT);
+            if (bot_score <= -1) is_player_bot_dead = true;
+        }
+    }
+
+    //ball 3
+    if (ball_3_Y == 31) { // ************************goes offscreen for TOP player
+        ball_3_direction_Y = -ball_3_direction_Y;
+
+        if (is_player_TOP_dead) {
+            // player is dead
+        } else {
+            print_score_for_player(top_score--, PLAYER_TOP);
+            if (top_score <= -1) is_player_TOP_dead = true;
+        }
+    } else if (ball_3_Y == 0) { // **************************************goes offscreen for BOT player
+        ball_3_direction_Y = -ball_3_direction_Y;
+
+        if (is_player_bot_dead) {
+            // player is dead
+        } else {
+            print_score_for_player(bot_score--, PLAYER_BOT);
+            if (bot_score <= -1) is_player_bot_dead = true;
+        }
+    }
+
+
+    //ball 1
+    // check if the ball and the paddle occupy the same space on screen
+    if (inPaddle_2_mode(ball_X, ball_Y, bot_paddleX, bot_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for BOT player
+        ball_direction_Y = -ball_direction_Y;
+        quicker();
+    }
+    if (inPaddle_2_mode(ball_X, ball_Y, top_paddleX, top_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for TOP player
+        ball_direction_Y = -ball_direction_Y;
+        quicker();
+    }
+
+    //ball 2
+    if (inPaddle_2_mode(ball_2_X, ball_2_Y, bot_paddleX, bot_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for BOT player
+        ball_2_direction_Y = -ball_2_direction_Y;
+        quicker();
+    }
+    if (inPaddle_2_mode(ball_2_X, ball_2_Y, top_paddleX, top_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for TOP player
+        ball_2_direction_Y = -ball_2_direction_Y;
+        quicker();
+    }
+
+    //ball 3
+    if (inPaddle_2_mode(ball_3_X, ball_3_Y, bot_paddleX, bot_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for BOT player
+        ball_3_direction_Y = -ball_3_direction_Y;
+        quicker();
+    }
+    if (inPaddle_2_mode(ball_3_X, ball_3_Y, top_paddleX, top_paddleY, horiz_paddleWidth,
+                        horiz_paddleHeight)) { // check for TOP player
+        ball_3_direction_Y = -ball_3_direction_Y;
+        quicker();
+    }
+
+    //ball 1
+    // update the ball's position
+    ball_X += ball_direction_X;
+    ball_Y += ball_direction_Y;
+    //ball 2
+    ball_2_X += ball_2_direction_X;
+    ball_2_Y += ball_2_direction_Y;
+    //ball 3
+    ball_3_X += ball_3_direction_X;
+    ball_3_Y += ball_3_direction_Y;
+
+    // erase the ball's previous position
+    //ball 1
+    if (oldBall_X != ball_X || oldBall_Y != ball_Y) {
+        matrix.drawPixel(oldBall_X, oldBall_Y, black_color);
+
+    }
+    //ball 2
+    if (oldBall_2_X != ball_2_X || oldBall_2_Y != ball_2_Y) {
+        matrix.drawPixel(oldBall_2_X, oldBall_2_Y, black_color);
+
+    }
+    //ball 3
+    if (oldBall_3_X != ball_3_X || oldBall_3_Y != ball_3_Y) {
+        matrix.drawPixel(oldBall_3_X, oldBall_3_Y, black_color);
+
+    }
+
+    // draw the ball's current position
+    //ball 1
+    matrix.drawPixel(ball_X, ball_Y, yellow_color);
+    //ball 2
+    matrix.drawPixel(ball_2_X, ball_2_Y, yellow_color);
+    //ball 3
+    matrix.drawPixel(ball_3_X, ball_3_Y, yellow_color);
+
+    oldBall_X = ball_X;
+    oldBall_Y = ball_Y;
+
+    oldBall_2_X = ball_2_X;
+    oldBall_2_Y = ball_2_Y;
+
+    oldBall_3_X = ball_3_X;
+    oldBall_3_Y = ball_3_Y;
 }
 
 void print_start_screen_2() {
@@ -1484,6 +2327,150 @@ void print_start_screen_PLAYERS() {
     matrix.drawPixel(27, 9, yellow_color);
 }
 
+void print_start_screen_MODE() {
+    //m
+    matrix.drawLine(25, 4, 25, 9, yellow_color);
+    matrix.drawLine(21, 4, 21, 9, yellow_color);
+    matrix.drawLine(23, 5, 23, 8, yellow_color);
+    matrix.drawPixel(24, 9, yellow_color);
+    matrix.drawPixel(22, 9, yellow_color);
+
+    //o
+    matrix.drawLine(19, 4, 19, 9, yellow_color);
+    matrix.drawLine(16, 4, 16, 9, yellow_color);
+    matrix.drawLine(16, 9, 19, 9, yellow_color);
+    matrix.drawLine(16, 4, 19, 4, yellow_color);
+
+    //d
+    matrix.drawLine(14, 4, 14, 9, yellow_color);
+    matrix.drawLine(11, 5, 11, 8, yellow_color);
+    matrix.drawLine(13, 4, 12, 4, yellow_color);
+    matrix.drawLine(13, 9, 12, 9, yellow_color);
+
+    //e
+    matrix.drawLine(9, 4, 9, 9, yellow_color);
+    matrix.drawLine(9, 4, 6, 4, yellow_color);
+    matrix.drawLine(9, 7, 7, 7, yellow_color);
+    matrix.drawLine(9, 9, 6, 9, yellow_color);
+}
+
+void print_start_screen_1_ball_eazy() {
+    //1
+    matrix.drawLine(29, 23, 27, 23, yellow_color);
+    matrix.drawLine(28, 23, 28, 29, yellow_color);
+    matrix.drawPixel(29, 28, yellow_color);
+
+    //-
+    matrix.drawLine(25, 26, 24, 26, yellow_color);
+
+    //b
+    matrix.drawLine(22, 23, 22, 29, yellow_color);
+    matrix.drawLine(22, 23, 20, 23, yellow_color);
+    matrix.drawLine(22, 29, 20, 29, yellow_color);
+    matrix.drawLine(20, 29, 20, 29, yellow_color);
+    matrix.drawLine(20, 26, 20, 23, yellow_color);
+    matrix.drawPixel(21, 27, yellow_color);
+    matrix.drawPixel(20, 28, yellow_color);
+
+    //a
+    matrix.drawLine(18, 23, 18, 29, yellow_color);
+    matrix.drawLine(16, 29, 16, 23, yellow_color);
+    matrix.drawPixel(17, 29, yellow_color);
+    matrix.drawPixel(17, 27, yellow_color);
+
+    //l
+    matrix.drawLine(14, 29, 14, 23, yellow_color);
+    matrix.drawLine(13, 23, 12, 23, yellow_color);
+
+    //l
+    matrix.drawLine(10, 29, 10, 23, yellow_color);
+    matrix.drawLine(9, 23, 8, 23, yellow_color);
+
+    //e
+    matrix.drawLine(16, 20, 16, 14, yellow_color);
+    matrix.drawLine(15, 20, 14, 20, yellow_color);
+    matrix.drawLine(15, 14, 14, 14, yellow_color);
+    matrix.drawPixel(15, 18, yellow_color);
+
+    //a
+    matrix.drawLine(12, 14, 12, 20, yellow_color);
+    matrix.drawLine(10, 14, 10, 20, yellow_color);
+    matrix.drawPixel(11, 18, yellow_color);
+    matrix.drawPixel(11, 20, yellow_color);
+
+    //z
+    matrix.drawLine(6, 14, 8, 14, yellow_color);
+    matrix.drawLine(8, 20, 6, 20, yellow_color);
+    matrix.drawLine(6, 19, 6, 18, yellow_color);
+    matrix.drawLine(8, 16, 8, 14, yellow_color);
+    matrix.drawPixel(7, 17, yellow_color);
+
+    //y
+    matrix.drawLine(2, 20, 2, 14, yellow_color);
+    matrix.drawLine(3, 14, 4, 14, yellow_color);
+    matrix.drawLine(4, 20, 4, 18, yellow_color);
+    matrix.drawPixel(3, 18, yellow_color);
+}
+
+void print_start_screen_3_ball_hard() {
+    //3
+    matrix.drawLine(29, 23, 27, 23, yellow_color);
+    matrix.drawLine(27, 23, 27, 29, yellow_color);
+    matrix.drawLine(28, 29, 29, 29, yellow_color);
+    matrix.drawPixel(28, 26, yellow_color);
+
+    //-
+    matrix.drawLine(25, 26, 24, 26, yellow_color);
+
+    //b
+    matrix.drawLine(22, 23, 22, 29, yellow_color);
+    matrix.drawLine(22, 23, 20, 23, yellow_color);
+    matrix.drawLine(22, 29, 20, 29, yellow_color);
+    matrix.drawLine(20, 29, 20, 29, yellow_color);
+    matrix.drawLine(20, 26, 20, 23, yellow_color);
+    matrix.drawPixel(21, 27, yellow_color);
+    matrix.drawPixel(20, 28, yellow_color);
+
+    //a
+    matrix.drawLine(18, 23, 18, 29, yellow_color);
+    matrix.drawLine(16, 29, 16, 23, yellow_color);
+    matrix.drawPixel(17, 29, yellow_color);
+    matrix.drawPixel(17, 27, yellow_color);
+
+    //l
+    matrix.drawLine(14, 29, 14, 23, yellow_color);
+    matrix.drawLine(13, 23, 12, 23, yellow_color);
+
+    //l
+    matrix.drawLine(10, 29, 10, 23, yellow_color);
+    matrix.drawLine(9, 23, 8, 23, yellow_color);
+
+    //h
+    matrix.drawLine(16, 20, 16, 14, yellow_color);
+    matrix.drawLine(14, 20, 14, 14, yellow_color);
+    matrix.drawPixel(15, 18, yellow_color);
+
+    //a
+    matrix.drawLine(12, 14, 12, 20, yellow_color);
+    matrix.drawLine(10, 14, 10, 20, yellow_color);
+    matrix.drawPixel(11, 18, yellow_color);
+    matrix.drawPixel(11, 20, yellow_color);
+
+    //r
+    matrix.drawLine(8, 20, 8, 14, yellow_color);
+    matrix.drawLine(7, 20, 6, 20, yellow_color);
+    matrix.drawPixel(6, 19, yellow_color);
+    matrix.drawPixel(7, 18, yellow_color);
+    matrix.drawLine(6, 17, 6, 14, yellow_color);
+
+    //d
+    matrix.drawLine(4, 20, 4, 14, yellow_color);
+    matrix.drawLine(2, 19, 2, 15, yellow_color);
+    matrix.drawPixel(3, 20, yellow_color);
+    matrix.drawPixel(3, 14, yellow_color);
+
+}
+
 void print_start_screen_RED_pointer() {
     matrix.drawLine(18, 2, 14, 2, red_color);
     matrix.drawLine(17, 1, 15, 1, red_color);
@@ -1542,17 +2529,81 @@ void load_start_screen() {
     soft_restart();
 }
 
+void start_screen_layer_2() {
+
+    //select button is pressed
+    if (digitalRead(BUTTON_SELECT) == 0) {
+        button_was_low = true;
+    }
+
+    if (digitalRead(BUTTON_SELECT) == 1 && button_was_low) {
+        clear_screen();
+        is_layer_2_started = true;
+        button_was_low = false;
+
+        //select button is pressed
+        if (is_show_2 && is_show_eazy) {
+            is_started_mode_2_ball_1 = true;
+            is_game_started = true;
+            clear_screen();
+            curr_time = millis();
+        } else if (is_show_2 && is_show_hard) {
+            is_started_mode_2_ball_3 = true;
+            is_game_started = true;
+            clear_screen();
+            curr_time = millis();
+        } else if (is_show_4 && is_show_eazy) {
+            is_started_mode_4_ball_1 = true;
+            is_game_started = true;
+            clear_screen();
+            curr_time = millis();
+        } else if (is_show_4 && is_show_hard) {
+            is_started_mode_4_ball_3 = true;
+            is_game_started = true;
+            clear_screen();
+            curr_time = millis();
+        }
+    }
+    // blinking animation for Select/mode
+    if ((millis() / 1000) == interval_for_Select) {
+        matrix.fillRect(0, 4, 31, 6, black_color);
+        print_start_screen_SELECT();
+        interval_for_Select += 2;
+    } else if ((millis() / 1000) == interval_for_showing_Players) {
+        matrix.fillRect(0, 4, 31, 6, black_color);
+        print_start_screen_MODE();
+        interval_for_showing_Players += 2;
+    }
+
+    //changing ez & hard
+    if ((is_show_hard && !is_show_eazy) && ((1023 - analogRead(bot_paddle__poti)) / 50) > 15) {
+        matrix.fillRect(2, 14, 28, 16, black_color);
+
+        print_start_screen_1_ball_eazy();
+        is_show_hard = false;
+        is_show_eazy = true;
+    } else if ((!is_show_hard && is_show_eazy) && ((1023 - analogRead(bot_paddle__poti)) / 50) < 15) {
+        matrix.fillRect(2, 14, 28, 16, black_color);
+
+        print_start_screen_3_ball_hard();
+        is_show_hard = true;
+        is_show_eazy = false;
+    }
+}
+
 
 void start_screen_logic() {
 
-//    buttonState = digitalRead(button_select);
+    //select button is pressed
+    if (digitalRead(BUTTON_SELECT) == 0) {
+        button_was_low = true;
+    }
 
-    //check if pressed. when pressed it is HIGH
-//    if (buttonState == HIGH) {
-//        clear_screen();
-//        is_game_started = true;
-//        is_mode_2_started = true;
-//    }
+    if (digitalRead(BUTTON_SELECT) == 1 && button_was_low) {
+        clear_screen();
+        is_layer_2_started = true;
+        button_was_low = false;
+    }
 
     // blinking animation for Select/Players
     if ((millis() / 1000) == interval_for_Select) {
@@ -1588,12 +2639,13 @@ void start_screen_logic() {
     }
 }
 
-void mode_2_players() {
+void mode_2_players_1_ball() {
 
     if (!is_ball_set) {
         //generate random ball position
         get_start_ball_position_for_2_mode();
         is_ball_set = true;
+        draw_ball_box(box_ball_color);
     }
 
     print_walls_2_mode();
@@ -1608,8 +2660,8 @@ void mode_2_players() {
         load_start_screen();
     }
 
-    bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
-    top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
+    bot_paddleX = -1 * map(analogRead(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
+    top_paddleX = map(analogRead(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
 
     //next 4 if statements responsible for paddle moving
     if (!is_player_bot_dead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
@@ -1636,7 +2688,19 @@ void mode_2_players() {
     }
 
     //freeze the ball for 5 sec before round starts
-    if (!is_round_started && millis() > 5000) {
+    if (!is_round_started && (millis() >= curr_time + 1000)) {
+        clear_ball_box_1_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 2000)) {
+        clear_ball_box_2_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 3000)) {
+        clear_ball_box_3_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 4000)) {
+        clear_ball_box_4_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 5000)) {
         matrix.drawPixel(ball_X, ball_Y, black_color);
         is_round_started = true;
     }
@@ -1648,34 +2712,118 @@ void mode_2_players() {
     }
 }
 
+void mode_2_players_3_ball() {
+
+    if (!is_ball_set) {
+        //generate random ball position
+        get_start_ball_position_for_2_mode();
+        get_start_ball_2_position_for_2_mode();
+        get_start_ball_3_position_for_2_mode();
+        is_ball_set = true;
+        draw_ball_box_mode_3(box_ball_color);
+    }
+
+
+    print_walls_2_mode();
+
+    if (is_player_TOP_dead) { // bot winn
+        matrix.setRotation(0);
+        print_WIN(red_color);
+        load_start_screen();
+    } else if (is_player_bot_dead) { // top win
+        matrix.setRotation(2);
+        print_WIN(green_color);
+        load_start_screen();
+    }
+
+    bot_paddleX = -1 * map(analogRead(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
+    top_paddleX = map(analogRead(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
+
+    //next 4 if statements responsible for paddle moving
+    if (!is_player_bot_dead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
+        matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+
+    if (!is_player_TOP_dead && (top_oldPaddleX != top_paddleX || top_oldPaddleY != top_paddleY)) {
+        matrix.fillRect(top_oldPaddleX, top_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+
+    if (!is_player_bot_dead) {
+        matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, red_color);
+        bot_oldPaddleX = bot_paddleX;
+        bot_oldPaddleY = bot_paddleY;
+    } else if (is_player_bot_dead) {
+        matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+    if (!is_player_TOP_dead) {
+        matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, green_color);
+        top_oldPaddleX = top_paddleX;
+        top_oldPaddleY = top_paddleY;
+    } else if (is_player_TOP_dead) {
+        matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+
+    //freeze the ball for 5 sec before round starts
+    if (!is_round_started && (millis() >= curr_time + 1000)) {
+        clear_ball_box_mode_3_tick_1();
+    }
+    if (!is_round_started && (millis() >= curr_time + 2000)) {
+        clear_ball_box_mode_3_tick_2();
+    }
+    if (!is_round_started && (millis() >= curr_time + 3000)) {
+        clear_ball_box_mode_3_tick_3();
+    }
+    if (!is_round_started && (millis() >= curr_time + 4000)) {
+        clear_ball_box_mode_3_tick_4();
+    }
+    if (!is_round_started && (millis() >= curr_time + 5000)) {
+        matrix.drawPixel(ball_X, ball_Y, black_color);
+        matrix.drawPixel(ball_2_X, ball_2_Y, black_color);
+        matrix.drawPixel(ball_3_X, ball_3_Y, black_color);
+        is_round_started = true;
+    }
+
+    if (is_round_started && tickRate % ball_speed == 0) {
+        move_3_ball_2_mode();
+    } else if (!is_round_started) {
+        matrix.drawPixel(ball_X, ball_Y, yellow_color);
+        matrix.drawPixel(ball_2_X, ball_2_Y, yellow_color);
+        matrix.drawPixel(ball_3_X, ball_3_Y, yellow_color);
+    }
+}
+
 void mode_4_players() {
 
     if (!is_ball_set) {
         //generate random ball position
         get_start_ball_position_for_4_mode();
         is_ball_set = true;
+        draw_ball_box(box_ball_color);
     }
 
     if (is_player_TOP_dead && is_player_left_dead && is_player_right_dead) { // bot win
         matrix.setRotation(0);
         print_WIN(red_color);
+        load_start_screen();
     } else if (is_player_bot_dead && is_player_left_dead && is_player_TOP_dead) { // right win
         matrix.setRotation(3);
         print_WIN(blue_color);
+        load_start_screen();
     } else if (is_player_bot_dead && is_player_TOP_dead && is_player_right_dead) {// left win
         matrix.setRotation(1);
         print_WIN(white_color);
+        load_start_screen();
     } else if (is_player_bot_dead && is_player_left_dead && is_player_right_dead) {//top win
         matrix.setRotation(2);
         print_WIN(green_color);
+        load_start_screen();
     }
 
-
     // lower the 1023 --> paddle moves faster
-    bot_paddleX = -1 * map(analogReadFast(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
-    left_paddleY = -1 * map(analogReadFast(left_paddle_poti), 0, 1023, 0, matrix_height - 6) + 26;
-    top_paddleX = map(analogReadFast(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
-    right_paddleY = map(analogReadFast(right_paddle_poti), 0, 1023, 0, matrix_height - 6);
+    bot_paddleX = -1 * map(analogRead(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
+    left_paddleY = -1 * map(analogRead(left_paddle_poti), 0, 1023, 0, matrix_height - 6) + 26;
+    top_paddleX = map(analogRead(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
+    right_paddleY = map(analogRead(right_paddle_poti), 0, 1023, 0, matrix_height - 6);
 
 
     //next 8 if statements responsible for paddle moving
@@ -1723,7 +2871,19 @@ void mode_4_players() {
     }
 
     //freeze the ball for 5 sec before the round starts
-    if (!is_round_started && millis() > 5000) {
+    if (!is_round_started && (millis() >= curr_time + 1000)) {
+        clear_ball_box_1_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 2000)) {
+        clear_ball_box_2_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 3000)) {
+        clear_ball_box_3_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 4000)) {
+        clear_ball_box_4_tick();
+    }
+    if (!is_round_started && (millis() >= curr_time + 5000)) {
         matrix.drawPixel(ball_X, ball_Y, black_color);
         is_round_started = true;
     }
@@ -1735,19 +2895,141 @@ void mode_4_players() {
     }
 }
 
+void mode_4_players_3_ball() {
+
+    if (!is_ball_set) {
+        //generate random ball position
+        get_start_ball_position_for_4_mode();
+        get_start_ball_2_position_for_4_mode();
+        get_start_ball_3_position_for_4_mode();
+        is_ball_set = true;
+        draw_ball_box_mode_3(box_ball_color);
+    }
+
+    if (is_player_TOP_dead && is_player_left_dead && is_player_right_dead) { // bot win
+        matrix.setRotation(0);
+        print_WIN(red_color);
+        load_start_screen();
+    } else if (is_player_bot_dead && is_player_left_dead && is_player_TOP_dead) { // right win
+        matrix.setRotation(3);
+        print_WIN(blue_color);
+        load_start_screen();
+    } else if (is_player_bot_dead && is_player_TOP_dead && is_player_right_dead) {// left win
+        matrix.setRotation(1);
+        print_WIN(white_color);
+        load_start_screen();
+    } else if (is_player_bot_dead && is_player_left_dead && is_player_right_dead) {//top win
+        matrix.setRotation(2);
+        print_WIN(green_color);
+        load_start_screen();
+    }
+
+    // lower the 1023 --> paddle moves faster
+    bot_paddleX = -1 * map(analogRead(bot_paddle__poti), 0, 1023, 0, matrix_width - 6) + 26;
+    left_paddleY = -1 * map(analogRead(left_paddle_poti), 0, 1023, 0, matrix_height - 6) + 26;
+    top_paddleX = map(analogRead(top_paddle_poti), 0, 1023, 0, matrix_width - 6);
+    right_paddleY = map(analogRead(right_paddle_poti), 0, 1023, 0, matrix_height - 6);
+
+
+    //next 8 if statements responsible for paddle moving
+    if (!is_player_bot_dead && (bot_oldPaddleX != bot_paddleX || bot_oldPaddleY != bot_paddleY)) {
+        matrix.fillRect(bot_oldPaddleX, bot_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+    if (!is_player_TOP_dead && (top_oldPaddleX != top_paddleX || top_oldPaddleY != top_paddleY)) {
+        matrix.fillRect(top_oldPaddleX, top_oldPaddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+    if (!is_player_left_dead && (left_oldPaddleX != left_paddleX || left_oldPaddleY != left_paddleY)) {
+        matrix.fillRect(left_oldPaddleX, left_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+    }
+    if (!is_player_right_dead && (right_oldPaddleX != right_paddleX || right_oldPaddleY != right_paddleY)) {
+        matrix.fillRect(right_oldPaddleX, right_oldPaddleY, vertical_paddleWidth, vertical_paddleHeight,
+                        black_color);
+    }
+
+    if (!is_player_bot_dead) {
+        matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, red_color);
+        bot_oldPaddleX = bot_paddleX;
+        bot_oldPaddleY = bot_paddleY;
+    } else if (is_player_bot_dead) {
+        matrix.fillRect(bot_paddleX, bot_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+    if (!is_player_TOP_dead) {
+        matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, green_color);
+        top_oldPaddleX = top_paddleX;
+        top_oldPaddleY = top_paddleY;
+    } else if (is_player_TOP_dead) {
+        matrix.fillRect(top_paddleX, top_paddleY, horiz_paddleWidth, horiz_paddleHeight, black_color);
+    }
+    if (!is_player_left_dead) {
+        matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, white_color);
+        left_oldPaddleX = left_paddleX;
+        left_oldPaddleY = left_paddleY;
+    } else if (is_player_left_dead) {
+        matrix.fillRect(left_paddleX, left_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+    }
+    if (!is_player_right_dead) {
+        matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, blue_color);
+        right_oldPaddleX = right_paddleX;
+        right_oldPaddleY = right_paddleY;
+    } else if (is_player_right_dead) {
+        matrix.fillRect(right_paddleX, right_paddleY, vertical_paddleWidth, vertical_paddleHeight, black_color);
+    }
+
+    //freeze the ball for 5 sec before the round starts
+    if (!is_round_started && (millis() >= curr_time + 1000)) {
+        clear_ball_box_mode_3_tick_1();
+    }
+    if (!is_round_started && (millis() >= curr_time + 2000)) {
+        clear_ball_box_mode_3_tick_2();
+    }
+    if (!is_round_started && (millis() >= curr_time + 3000)) {
+        clear_ball_box_mode_3_tick_3();
+    }
+    if (!is_round_started && (millis() >= curr_time + 4000)) {
+        clear_ball_box_mode_3_tick_4();
+    }
+    if (!is_round_started && (millis() >= curr_time + 5000)) {
+        matrix.drawPixel(ball_X, ball_Y, black_color);
+        matrix.drawPixel(ball_2_X, ball_2_Y, black_color);
+        matrix.drawPixel(ball_3_X, ball_3_Y, black_color);
+        is_round_started = true;
+    }
+
+    if (is_round_started && tickRate % ball_speed == 0) {
+        move_3_ball_4_mode();
+    } else if (!is_round_started) {
+        matrix.drawPixel(ball_X, ball_Y, yellow_color);
+        matrix.drawPixel(ball_2_X, ball_2_Y, yellow_color);
+        matrix.drawPixel(ball_3_X, ball_3_Y, yellow_color);
+    }
+}
+
 
 void loop() {
+
+    button_restart_state = digitalRead(BUTTON_RESTART);
+
+    if (button_restart_state == 0) {
+        load_start_screen();
+    }
+
     tickRate++;
-    if (!is_game_started) {
+    if (!is_game_started && !is_layer_2_started) {
         start_screen_logic();
 
-    } else if (is_game_started && is_mode_2_started) {
-        mode_2_players();
+    } else if (!is_game_started && is_layer_2_started) {
+        start_screen_layer_2();
+    } else if (is_game_started && is_started_mode_2_ball_1) {
+        mode_2_players_1_ball();
 
-    } else if (is_game_started && is_mode_4_started) {
+    } else if (is_game_started && is_started_mode_4_ball_1) {
         mode_4_players();
+    } else if (is_game_started && is_started_mode_2_ball_3) {
+        mode_2_players_3_ball();
+    } else if (is_game_started && is_started_mode_4_ball_3) {
+        mode_4_players_3_ball();
     }
-    
+
     if (tickRate == 1000) {
         tickRate = 1;
     }
