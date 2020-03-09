@@ -1,0 +1,13 @@
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_REBUILD_PROJECT_INDEX.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_PROGRAM.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_UPDATE_ALL.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_UPLOADFS.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_TEST.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_UPLOAD.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_CLEAN.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/Retropong.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_BUILD.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_BUILD_VERBOSE.dir
+/Users/taras/HAW/MD2/MD2/Retropong/cmake-build-debug/CMakeFiles/PLATFORMIO_MONITOR.dir
